@@ -1,0 +1,145 @@
+---
+title: 'EPID799C Fall17: Homework 1 Answers'
+author: "Mike Dolan Fliss"
+date: "September 23, 2017"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. 
+
+Though I rarely write my code in markdown documents, they're a great way to share the code and its output all at once. 
+
+Below are the code chunks for recoding as we assigned in homework 1.
+
+## Homework 1
+
+```{r Recode_Chunk}
+#............................
+# Births 2012 Analysis for EPID 799C
+# Mike Dolan Fliss, August 2017
+#............................
+# (HW1.Q1)
+# Aim: Does early prenatal care (<month 5) decrease the risk of preterm birth? 
+#............................
+# Project Notes & References:
+# Birth Certificate Revisions: https://www.cdc.gov/nchs/nvss/vital_certificate_revisions.htm 
+#............................
+ 
+#............................
+# Libraries, directories, load data ####
+#............................
+library(tidyverse) # for ggplot, dplyr in HWX
+library(lubridate) # for dates in HWX
+library(tableone) # used in HWX
+library(GGally) # for optional Q on HW1
+data_dir = "D:/User/Dropbox (Personal)/Education/Classes/17Fall_EPID799C_RforEpi/data"
+output_dir = "D:/User/Dropbox (Personal)/Education/Classes/17Fall_EPID799C_RforEpi/data"
+# map_dir = paste0(data_dir, "/GIS") # used later
+setwd(data_dir)
+# (HW1.Q2)
+births = read.csv("births2012.csv", stringsAsFactors = F)
+head(births)
+#births = read.csv("births2012_small.csv", stringsAsFactors = F) #start with small version
+names(births) = tolower(names(births)) #drop names to lowercase
+#..................................................
+# (HW1.Q3) Notice all these nice blocks?  I like to 
+# have a header at the top, and block comments at the bottom.
+#..................................................
+
+
+# ......................................
+# Exploring Data (class only)
+# ......................................
+## (HW1.Q4) 
+dim(births)
+str(births[,c("mage", "wksgest", "mdif")])
+summary(births[,c("wksgest", "mdif")])
+## (HW1.Q5) 
+births_sample = births[1:10000, c("mage", "mdif", "visits", "wksgest", "mrace")]
+plot(births_sample)
+births_sample = births[sample(nrow(births), 1000), c("mage", "mdif", "visits", "wksgest", "mrace")]
+ggpairs(births_sample) # later I'll demo how to use color here after some recoding.
+# ......................................
+
+# ......................................
+# Recode Variables: Outcome, Exposure & Covariates ####
+# ......................................
+## (HW1.Q6) 
+
+# Date variables
+births$dob_d = ymd(births$dob) # leave dobmonth, day, year as is.
+births$weeknum = week(births$dob_d) #thanks, lubridate!
+
+### A. Outcome variables - to do later: double check with Sara!
+
+### Gestational Age: weeks (716.A1.1)
+hist(births$wksgest) #quick look
+table(births$wksgest, useNA = "always") #table it
+sd(births$wksgest)
+quantile(births$wksgest, probs=c(.05,.95))
+births$pwk = ifelse(births$wksgest>37, 17, births$wksgest-19.5) #A3.1 pwk - person time at risk.
+table(births$wksgest, births$pwk) #TODO - this isn't right. See the 17.5 record.
+
+# preterm variable - (716.A4.1) weird order here.
+hist(births$wksgest)
+births$hx_preterm = births$ppb #already exists as a hx of preterm birth.
+table(cut(births$wksgest, breaks = c(0,19,36,99), labels =  c("too young", "preterm", "term"))) #should be no births too young at this point.
+births$preterm_f = cut(births$wksgest, breaks = c(19,36,99), labels =  c("preterm", "term")) #should be no births too young at this point.
+table(births$wksgest, births$preterm_f)
+births$preterm = ifelse(births$preterm_f=="term", 0, 1) #as int, might use later.
+
+### Prenatal / pnc5
+summary(births$visits) # (716.A1.B1.1)
+births$visits[births$visits==99] = NA
+table(births$visits, useNA="always") #Looks ok
+hist(births$visits)
+births$mdif[births$mdif %in% c(99)] = NA # (716.A1.B2.1) pnc5
+births$pnc5 = ifelse(births$mdif<=5, 1, 0) #NA carries forward
+table(births$pnc5, births$mdif, useNA = "always")
+births$pnc5_f = factor(births$pnc5, levels=0:1, labels = c("No PNC before 5 mo", "PNC starts in first 5 mo"))
+
+### SMOKING - NOTE: We used to have CIGBEF and CIGDUR, not sure what happened. (716.A1.C9)
+births$smoker = births$cigbef # retain old variable
+births$smoker[births$smoker=="U"] = NA
+births$smoker = ifelse(births$smoker == "N", 0, 1)
+births$smoker_f = factor(births$smoker, levels=0:1, labels=c("Non smoker", "Smoker"))
+table(births$smoker_f, useNA="always")
+
+### sex (716.A1.C10)
+table(births$sex)
+births$sex[births$sex==9] = NA
+births$sex = factor(births$sex, levels=1:2, labels=c("Male", "Female"))
+table(births$sex)
+
+### Race-eth: FIX Back out of using this formatter.
+# Typically I might save these recodes in a csv file rather than have constants in my code...
+formatter = read.csv("R format helper 2012.csv", stringsAsFactors=F) 
+formatter[formatter$variable=="mrace",]
+births$race_f = factor(births$mrace, levels = 1:4, 
+                       labels=formatter[formatter$variable=="mrace",]$recode, 
+                       ordered = T) # a few ways to do this.
+births$raceeth = ifelse(births$mrace == 1 & births$methnic == "N", "WnH", 
+                        ifelse(births$mrace == 1 & births$methnic == "Y", "WH", 
+                               ifelse(births$mrace==2, "AA", 
+                                      ifelse(births$mrace==3, "AI/AN", "Other"))))
+births$raceeth_f = factor(births$raceeth, levels=c("WnH", "AA", "WH", "AI/AN", "Other"))
+table(births$race_f, births$methnic, births$raceeth_f)
+
+births$mage[births$mage == 99] = NA
+
+table(births$wksgest)
+births$wksgest[births$wksgest==99] = NA # Very common syntax
+# ......................................
+# NOTES: 
+# ......................................
+```
+
+

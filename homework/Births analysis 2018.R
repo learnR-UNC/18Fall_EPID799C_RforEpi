@@ -2,12 +2,12 @@
 # Births 2012 Analysis for EPID 799C
 # Mike Dolan Fliss, August 2017
 #............................
-# Aim: Does early prenatal care (<month 5) decrease the risk of preterm (<week 37) birth? # (HW1.Q1)
+# Aim: Does early prenatal care (<month 5) decrease the risk of preterm (<week 37) birth? # (HW1.Q1a)
 #............................
 # Project Notes:
 # Birth Certificate Revisions: https://www.cdc.gov/nchs/nvss/vital_certificate_revisions.htm 
 #............................
- 
+
 #............................
 # Libraries, directories, load data ####
 #............................
@@ -16,16 +16,16 @@
 library(tidyverse) # for ggplot, dplyr in HWX
 library(lubridate) # for dates in HWX
 library(tableone) # used in HWX
-library(GGally) # for optional Q on HW1
 
 data_dir = paste0(getwd(), "/data")
 output_dir = paste0(getwd(), "/data")
 # map_dir = paste0(data_dir, "/GIS") # used later
 
-# (HW1.Q2)
-births = read.csv("data/births2012.csv", stringsAsFactors = F)
-head(births)
+
+births = read.csv("data/births2012.csv", stringsAsFactors = F) # (HW1.Q2a)
+head(births) # (HW1.Q2b)
 #births = read.csv("births2012_small.csv", stringsAsFactors = F) #start with small version
+
 names(births) = tolower(names(births)) #drop names to lowercase
 #..................................................
 # (HW1.Q3) Notice all these nice blocks?  I like to 
@@ -34,17 +34,22 @@ names(births) = tolower(names(births)) #drop names to lowercase
 
 
 # ......................................
-# Exploring Data (class only)
+# Exploring Data - HW1 Q3a
 # ......................................
+dim(births) # (HW1.Q3b) 
+summary(births[,c("wksgest", "mdif")]) # (HW1.Q3c) 
+str(births[,c("mage", "wksgest", "mdif")]) # (HW1.Q3d) 
+class(births$mage); class(births$wksgest); class(births$mdif) 
+str(births$mage); str(births$wksgest); str(births$mdif)
+
 ## (HW1.Q4) 
-dim(births)
-str(births[,c("mage", "wksgest", "mdif")])
-summary(births[,c("wksgest", "mdif")])
-## (HW1.Q5) 
-births_sample = births[1:10000, c("mage", "mdif", "visits", "wksgest", "mrace")]
-plot(births_sample)
-births_sample = births[sample(nrow(births), 1000), c("mage", "mdif", "visits", "wksgest", "mrace")]
-ggpairs(births_sample) # later I'll demo how to use color here after some recoding.
+births_sample = births[1:1000, c("mage", "mdif", "visits", "wksgest", "mrace")] #A
+plot(births_sample) #B
+
+#C
+births_sample = births[sample(nrow(births), 1000), c("mage", "mdif", "visits", "wksgest", "mrace")] #C
+car::scatterplotMatrix(births_sample)
+GGally::ggpairs(births_sample) # later I'll demo how to use color here after some recoding.
 # ......................................
 
 
@@ -199,7 +204,7 @@ ggplot(births[sample(1:nrow(births), 1000),], aes(x=wksgest, y=weeknum)) +
 table(births$mage)
 births$mage_cat_f = cut(births$mage, seq(9, 59, by=10))
 table(births$mage, births$mage_cat_f)
-      
+
 #Outcome strata - preterm
 t1=CreateTableOne(data=births[,c("pnc5_f", "preterm_f", "smoker","sex", "race_f", "wksgest", "mage", "meduc")], 
                   strata=c("preterm_f"), includeNA = T, argsNonNormal = c("wksgest"))
@@ -280,7 +285,7 @@ ggplot(county_df, aes(x=pct_earlyPNC, y=pct_preterm, color=econ_tier))+
 county_name_ord = factor(county_df$county_name, county_df$county_name[order(county_df$pct_earlyPNC)], ordered=T)
 county_df %>% mutate(county_name_ord = county_name_ord) %>%
   gather(key=variable, value=value, n, pct_earlyPNC, pct_preterm) %>% head()
-  ggplot(aes(county_name_ord, value, fill=econ_tier))+geom_col()+coord_flip()+facet_wrap(~variable, scales = "free_x")
+ggplot(aes(county_name_ord, value, fill=econ_tier))+geom_col()+coord_flip()+facet_wrap(~variable, scales = "free_x")
 # ......................................
 
 # ......................................
@@ -474,14 +479,14 @@ contrast(mfull_emm_rd, # demo one-level
          b=list(pnc5_f = "No PNC before 5 mo", raceeth_f = "AA", smoker_f="Non smoker", mage=0, mage_sq=0))
 
 raceeth_diff = contrast(mfull_emm_rd, 
-         a=list(pnc5_f = "PNC starts in first 5 mo", raceeth_f = levels(births$raceeth_f), smoker_f="Non smoker", mage=0, mage_sq=0),
-         b=list(pnc5_f = "No PNC before 5 mo", raceeth_f = levels(births$raceeth_f), smoker_f="Non smoker", mage=0, mage_sq=0))
+                        a=list(pnc5_f = "PNC starts in first 5 mo", raceeth_f = levels(births$raceeth_f), smoker_f="Non smoker", mage=0, mage_sq=0),
+                        b=list(pnc5_f = "No PNC before 5 mo", raceeth_f = levels(births$raceeth_f), smoker_f="Non smoker", mage=0, mage_sq=0))
 
 print(raceeth_diff, X=T)
 str(raceeth_diff)
 EMM_df = data.frame(model=paste0("M5: ", raceeth_diff$raceeth_f), 
                     estimate=raceeth_diff$Contrast, std.error = raceeth_diff$SE,
-                   X2.5..=raceeth_diff$Lower, X97.5..=raceeth_diff$Upper, stringsAsFactors = F)
+                    X2.5..=raceeth_diff$Lower, X97.5..=raceeth_diff$Upper, stringsAsFactors = F)
 EMM_df
 ggplot(bind_rows(model_results,EMM_df), aes(model, estimate,color=estimate, fill=estimate))+
   geom_linerange(aes(ymin=X2.5.., ymax=X97.5..), size=1)+
@@ -551,9 +556,9 @@ county_data %>%
               summarise(n = n(), preterm=sum(preterm, na.rm=T), pnc5=sum(pnc5, na.rm=T)) %>%
               mutate(pct_pnc5 = pnc5/n*100, pct_preterm=preterm/n*100) %>%
               mutate(code=NA, variable="cores", name="North Carolina", helper=37)
-    ) %>%
+  ) %>%
   write.table("clipboard", sep="\t", row.names = F)
-  
+
 #............................................
 
 save.image("birth_results.RData")
@@ -758,7 +763,7 @@ mymap =
   scale_fill_brewer(name="% Early Prenatal Care", type="seq", palette ="Greens")+
   #scale_fill_gradient(name="% Early Prenatal Care", low = "white", high = "dark green")+
   theme_map()+theme(legend.position="right")
-  #theme_map()+theme(legend_position="bottom")+guides(fill=guide_legend(nrow=1))#right")
+#theme_map()+theme(legend_position="bottom")+guides(fill=guide_legend(nrow=1))#right")
 mymap 
 # http://novyden.blogspot.com/2013/09/how-to-expand-color-palette-with-ggplot.html
 mymap+theme_minimal() #also a nice one / clean. 

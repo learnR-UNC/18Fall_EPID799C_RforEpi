@@ -1,0 +1,231 @@
+---
+title: "HW02 Answers"
+author: "Mike Dolan Fliss"
+date: "October 2, 2017"
+output:
+  word_document: default
+  pdf_document:
+    latex_engine: lualatex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Homework 1
+
+First we load our data and recode our core variables of interest. We'll do some very preliminary graphing and table-making to help us recode our variables properly.
+```{r hw1}
+#............................
+# Births 2012 Analysis for EPID 799C
+# Mike Dolan Fliss, August 2017
+#............................
+# Aim: Does early prenatal care (<month 5) decrease the risk of preterm birth? # (HW1.Q1)
+#............................
+# Project Notes & References:
+# Birth Certificate Revisions: https://www.cdc.gov/nchs/nvss/vital_certificate_revisions.htm 
+#............................
+ 
+#............................
+# Libraries, directories, load data ####
+#............................
+library(tidyverse) # for ggplot, dplyr in HWX
+library(lubridate) # for dates in HWX
+library(tableone) # used in HWX
+library(GGally) # for optional Q on HW1
+library(tableone)
+data_dir = "D:/User/Dropbox (Personal)/Education/Classes/17Fall_EPID799C_RforEpi/data"
+output_dir = "D:/User/Dropbox (Personal)/Education/Classes/17Fall_EPID799C_RforEpi/data"
+# map_dir = paste0(data_dir, "/GIS") # used later
+setwd(data_dir)
+# (HW1.Q2)
+births = read.csv("births2012.csv", stringsAsFactors = F)
+head(births)
+#births = read.csv("births2012_small.csv", stringsAsFactors = F) #start with small version
+names(births) = tolower(names(births)) #drop names to lowercase
+#..................................................
+# (HW1.Q3) Notice all these nice blocks?  I like to 
+# have a header at the top, and block comments at the bottom.
+#..................................................
+
+
+# ......................................
+# Exploring Data (class only)
+# ......................................
+## (HW1.Q4) 
+dim(births)
+str(births[,c("mage", "wksgest", "mdif")])
+summary(births[,c("wksgest", "mdif")])
+## (HW1.Q5) 
+births_sample = births[1:1000, c("mage", "mdif", "visits", "wksgest", "mrace")]
+births_sample = births[sample(nrow(births), 1000), c("mage", "mdif", "visits", "wksgest", "mrace")]
+plot(births_sample)
+#ggpairs(births_sample) # later I'll demo how to use color here after some recoding.
+# ......................................
+
+
+# ......................................
+# Recode Variables: Outcome, Exposure & Covariates ####
+# ......................................
+## (HW1.Q6) 
+
+# Date variables
+births$dob_d = ymd(births$dob) # leave dobmonth, day, year as is.
+
+### A. Outcome variables - to do later: double check with Sara!
+
+### Gestational Age: weeks (716.A1.1)
+hist(births$wksgest) #quick look
+table(births$wksgest, useNA = "always") #table it
+sd(births$wksgest)
+quantile(births$wksgest, probs=c(.05,.95))
+births$pwk = ifelse(births$wksgest>37, 17, births$wksgest-19.5) #A3.1 pwk - person time at risk.
+table(births$wksgest, births$pwk) #TODO - this isn't right. See the 17.5 record.
+
+# preterm variable - (716.A4.1) weird order here.
+hist(births$wksgest)
+births$hx_preterm = births$ppb #already exists as a hx of preterm birth.
+table(cut(births$wksgest, breaks = c(0,19,36,99), labels =  c("too young", "preterm", "term"))) #should be no births too young at this point.
+births$preterm_f = cut(births$wksgest, breaks = c(19,36,99), labels =  c("preterm", "term")) #should be no births too young at this point.
+table(births$wksgest, births$preterm_f)
+births$preterm = ifelse(births$preterm_f=="term", 0, 1) #as int, might use later.
+
+### Prenatal / pnc5
+summary(births$visits) # (716.A1.B1.1)
+births$visits[births$visits==99] = NA
+table(births$visits, useNA="always") #Looks ok
+hist(births$visits)
+births$mdif[births$mdif %in% c(99)] = NA # (716.A1.B2.1) pnc5
+births$pnc5 = ifelse(births$mdif<=5, 1, 0) #NA carries forward
+table(births$pnc5, births$mdif, useNA = "always")
+births$pnc5_f = factor(births$pnc5, levels=0:1, labels = c("No PNC before 5 mo", "PNC starts in first 5 mo"))
+
+### SMOKING - NOTE: We used to have CIGBEF and CIGDUR, not sure what happened. (716.A1.C9)
+births$smoker = births$cigbef # retain old variable
+births$smoker[births$smoker=="U"] = NA
+births$smoker = ifelse(births$smoker == "N", 0, 1)
+births$smoker_f = factor(births$smoker, levels=0:1, labels=c("Non smoker", "Smoker"))
+table(births$smoker_f, useNA="always")
+
+### sex (716.A1.C10)
+table(births$sex)
+births$sex[births$sex==9] = NA
+births$sex = factor(births$sex, levels=1:2, labels=c("Male", "Female"))
+table(births$sex)
+
+### Race-eth: FIX Back out of using this formatter.
+# Typically I might save these recodes in a csv file rather than have constants in my code...
+formatter = read.csv("R format helper 2012.csv", stringsAsFactors=F) 
+formatter[formatter$variable=="mrace",]
+births$race_f = factor(births$mrace, levels = 1:4, 
+                       labels=formatter[formatter$variable=="mrace",]$recode, 
+                       ordered = T) # a few ways to do this.
+births$raceeth = ifelse(births$mrace == 1 & births$methnic == "N", "WnH", 
+                        ifelse(births$mrace == 1 & births$methnic == "Y", "WH", 
+                               ifelse(births$mrace==2, "AA", 
+                                      ifelse(births$mrace==3, "AI/AN", "Other"))))
+births$raceeth_f = factor(births$raceeth, levels=c("WnH", "AA", "WH", "AI/AN", "Other"))
+table(births$race_f, births$methnic, births$raceeth_f)
+
+births$mage[births$mage == 99] = NA
+
+table(births$wksgest)
+births$wksgest[births$wksgest==99] = NA # Very common syntax
+# ......................................
+# NOTES: 
+# ......................................
+```
+
+# Homework 2
+
+Now we subset the data using apply(), and make some intro ggplots to help us explore the data.
+
+```{r hw2}
+# ......................................
+# Eligibility criteria & core recoding 
+# ......................................
+# Create many inclusion variables, all of which have to be =1 to be included.
+births$weeknum = week(births$dob_d) #thanks, lubridate! (HW2.Q1)
+# 1. Has gestation data (weeks), and at least 20 weeks gestation pre-birth (weeks >= 20)
+births$incl_hasgest = as.numeric(!is.na(births$wksgest)) #(HW2.Q2a)
+births$incl_enoughgest = as.numeric(births$wksgest >= 20) #(HW2.Q2b)
+# 2. Less than 20 weeks gestation before Jan 1 of year (LMP > Aug 20), or weeks-weeknum>=19, w/ weeknum=1 for Jan 1-7
+births$incl_lateenough = as.numeric(births$wksgest - births$weeknum <= 19) #(HW2.Q2c)
+# 3. Start date of gestation was 45 (max gest in'11) w prior to Jan 1 of next year, so all births are observed in year
+births$incl_earlyenough = as.numeric(births$weeknum - births$wksgest <=7) #(HW2.Q2d)
+# 4. singletons only
+births$incl_singleton = as.numeric(births$plur == 1) #(HW2.Q2e)
+# births$incl_hasnumdata = as.numeric(births$plur != 9) #not bothering to recode is ok. Isn't this one redundant with above?
+# 5. no congential anomalies - Let's use apply for efficiency
+congen_anom = c("anen","mnsb","cchd", "cdh", "omph","gast", "limb", "cl","cp","dowt","cdit", "hypo") #(HW2.Q3a)
+births$incl_hasanomdata = as.numeric(apply(births[,congen_anom]!="U", FUN=all, 1)) #All not missing = not any missing
+births$incl_noanomalies = as.numeric(apply(births[,congen_anom]=="N", FUN=all, 1)) #All not present #(HW2.Q3b)
+
+eligibility_drops = nrow(births) - apply(births[,grepl("incl_", names(births))], FUN=sum, MARGIN = 2, na.rm=T)
+eligibility_drops #(HW2.Q4b optional)
+
+births$include_allpass = apply(births[, grepl("incl_", names(births))], FUN=all, MARGIN = 1) #(HW2.Q3c)
+old_births = births #Small enough dataset that we might like to hold it. births=old_births #(HW2.Q4a)
+births = births[births$include_allpass, ]
+
+# warnings() # Just letting me know I'm casting those 1s as TRUEs. That's ok.
+
+# Results of exclusion
+cat("Leaving eligibility checks with n =", formatC(nrow(births), big.mark = ","), 
+    "births of original", formatC(nrow(old_births), big.mark = ",")) #(HW2.Q4d)
+# names(births) # because I forget. :)
+vars_of_interest = c("pnc5_f", "preterm_f", "smoker_f", "wksgest", "sex", "meduc", "raceeth_f", "weeknum", "include_allpass")
+CreateTableOne(data=old_births[, vars_of_interest]) #(HW2.Q5)
+CreateTableOne(data=old_births[, vars_of_interest], strata="include_allpass")
+# ......................................
+# NOTES: Finishes with 62,370 of 122,513 on 8/5/2017. Double check with Sarah.
+# ......................................
+# dplyr: https://blog.rstudio.org/2016/06/27/dplyr-0-5-0/
+# ......................................
+
+
+# ......................................
+# Explore data
+# ......................................
+#A1.2: Graph weeks
+npop = formatC(sum(!is.na(births$wksgest)), big.mark=',') #(HW2.Q6a)
+ggplot(data=births, aes(x=wksgest, y=..prop..))+geom_bar() + #Does what you need, as does geom_histogram()
+  labs(title="Figure 1: Proportional distribution of gestational age at birth", 
+       subtitle=paste0("From ", npop, " births in NC in 2003 from the NC SCHS, posted at Odum Institute"), 
+       x="Weeks of gestation", y="Proportion of population") + 
+  theme_bw()
+
+#A2.1 : Working with weeknum. - should double check this. Just used %V above.
+hist(births$weeknum, breaks = min(births$weeknum):max(births$weeknum)) # Looks weird
+
+#A2.2 : Graph weeknum #(HW2.Q6b)
+ggplot(births, aes(x=weeknum, y=..prop..)) + geom_bar() +
+  labs(title="Throwaway: Investigating Weeknum", 
+       subtitle="Note to self : Weeknum needs some work, doesn't quite match SAS", 
+       x="Week number of birth", y="Proportion of population") +
+  theme_bw()
+
+#A2.3 : weeks vs. weeknum #(HW2.Q6c)
+# Sampling here for R markdown....
+ggplot(births[sample(1:nrow(births), 1000),], aes(x=wksgest, y=weeknum)) + 
+  geom_jitter(width=1, height=1, pch=".", alpha=0.3)+
+  labs(title="Throwaway: week vs. weeknum", 
+       subtitle="Note to self: Does this match what we expect given the inclusion criteria?", 
+       x="weeks of gestation", y="week number of birth in year")+
+  theme_bw()
+
+# Print some useful Table 1 versions
+t1=CreateTableOne(data=births[,c("pnc5_f", "race_f", "smoker","sex", "preterm_f", "wksgest")], strata=c("preterm_f"),
+                  includeNA = T, argsNonNormal = c("wksgest"))
+print(t1,showAllLevels=T )
+#Race/eth variable
+t2=CreateTableOne(data=births[,c("pnc5_f", "preterm_f", "smoker","sex", "preterm_f", "wksgest", "race_f")], strata=c("race_f"),
+                  includeNA = T, argsNonNormal = c("wksgest"))
+print(t2, showAllLevels=T)
+#print.TableOne # let's see the guts.
+
+write.table(print(t2, showAllLevels=T, quote = T), "clipboard", sep="/t") #Can we export better?
+# ......................................
+```
+
+

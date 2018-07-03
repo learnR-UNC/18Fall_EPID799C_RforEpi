@@ -18,20 +18,10 @@ library(lubridate) # for dates in HWX
 library(tableone) # used in HWX
 library(GGally) # for optional Q on HW1
 
-# data_dir = "D:/User/Dropbox (Personal)/Education/Classes/17Fall_EPID799C_RforEpi/data"
+data_dir = paste0(getwd(), "/data")
 output_dir = paste0(getwd(), "/data")
-
-<<<<<<< HEAD
-births = read.csv("data/births2012.csv", stringsAsFactors = F)
-
-
-
-# data_dir = "D:/User/Dropbox (Personal)/Education/Classes/17Fall_EPID799C_RforEpi/data"
-output_dir = paste0(setwd(), "/data")
-=======
->>>>>>> c19f25df1f745fdff6ee930da18a6794f328608b
 # map_dir = paste0(data_dir, "/GIS") # used later
-# setwd(data_dir)
+
 # (HW1.Q2)
 births = read.csv("data/births2012.csv", stringsAsFactors = F)
 head(births)

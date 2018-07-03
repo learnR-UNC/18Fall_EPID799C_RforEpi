@@ -11,6 +11,7 @@
 #............................
 # Libraries, directories, load data ####
 #............................
+# May need to install these packages in advance on your local machine.
 library(tidyverse) # for ggplot, dplyr in HWX
 library(lubridate) # for dates in HWX
 library(tableone) # used in HWX

@@ -18,14 +18,14 @@ library(GGally) # for optional Q on HW1
 library(tableone)
 
 
-births = read.csv("births2012.csv", stringsAsFactors = F)
+births = read.csv("data/births2012.csv", stringsAsFactors = F)
 
 
 
-data_dir = "D:/User/Dropbox (Personal)/Education/Classes/17Fall_EPID799C_RforEpi/data"
-output_dir = "D:/User/Dropbox (Personal)/Education/Classes/17Fall_EPID799C_RforEpi/data"
+# data_dir = "D:/User/Dropbox (Personal)/Education/Classes/17Fall_EPID799C_RforEpi/data"
+output_dir = paste0(setwd(), "/data")
 # map_dir = paste0(data_dir, "/GIS") # used later
-setwd(data_dir)
+# setwd(data_dir)
 # (HW1.Q2)
 births = read.csv("births2012.csv", stringsAsFactors = F)
 head(births)

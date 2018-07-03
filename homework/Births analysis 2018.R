@@ -12,23 +12,19 @@
 # Libraries, directories, load data ####
 #............................
 # May need to install these packages in advance on your local machine.
+# install.packages("tableone")
 library(tidyverse) # for ggplot, dplyr in HWX
 library(lubridate) # for dates in HWX
 library(tableone) # used in HWX
 library(GGally) # for optional Q on HW1
-library(tableone)
 
+# data_dir = "D:/User/Dropbox (Personal)/Education/Classes/17Fall_EPID799C_RforEpi/data"
+output_dir = paste0(getwd(), "/data")
 
-births = read.csv("births2012.csv", stringsAsFactors = F)
-
-
-
-data_dir = "D:/User/Dropbox (Personal)/Education/Classes/17Fall_EPID799C_RforEpi/data"
-output_dir = "D:/User/Dropbox (Personal)/Education/Classes/17Fall_EPID799C_RforEpi/data"
 # map_dir = paste0(data_dir, "/GIS") # used later
 setwd(data_dir)
 # (HW1.Q2)
-births = read.csv("births2012.csv", stringsAsFactors = F)
+births = read.csv("data/births2012.csv", stringsAsFactors = F)
 head(births)
 #births = read.csv("births2012_small.csv", stringsAsFactors = F) #start with small version
 names(births) = tolower(names(births)) #drop names to lowercase

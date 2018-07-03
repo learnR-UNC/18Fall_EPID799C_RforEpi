@@ -17,6 +17,12 @@ library(lubridate) # for dates in HWX
 library(tableone) # used in HWX
 library(GGally) # for optional Q on HW1
 library(tableone)
+
+
+births = read.csv("births2012.csv", stringsAsFactors = F)
+
+
+
 data_dir = "D:/User/Dropbox (Personal)/Education/Classes/17Fall_EPID799C_RforEpi/data"
 output_dir = "D:/User/Dropbox (Personal)/Education/Classes/17Fall_EPID799C_RforEpi/data"
 # map_dir = paste0(data_dir, "/GIS") # used later

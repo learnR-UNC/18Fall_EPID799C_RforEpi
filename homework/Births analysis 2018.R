@@ -56,7 +56,7 @@ GGally::ggpairs(births_sample) # later I'll demo how to use color here after som
 # ......................................
 # Recode Variables: Outcome, Exposure & Covariates #### (HW1)
 # ......................................
-## (HW1.Q6) 
+## (HW1.Q6 ) 
 
 # Date variables
 births$dob_d = ymd(births$dob) # leave dobmonth, day, year as is.

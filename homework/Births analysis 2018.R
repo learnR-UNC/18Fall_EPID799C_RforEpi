@@ -1,5 +1,5 @@
 #............................
-# Births 2012 Analysis for EPID 799C
+# Births 2012 Analysis for EPID 799C: PNC decrease PT birth? ####
 # Mike Dolan Fliss, August 2017
 # Aim: Does early prenatal care (<month 5) decrease the risk of preterm (<week 37) birth?
 # (This Descriptive header is HW1.Q1a)

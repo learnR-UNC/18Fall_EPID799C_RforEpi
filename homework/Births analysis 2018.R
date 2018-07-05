@@ -54,75 +54,154 @@ GGally::ggpairs(births_sample) # later I'll demo how to use color here after som
 
 
 # ......................................
-# Recode Variables: Outcome, Exposure & Covariates #### (HW1)
+# Recode Variables: Exposure, Outcome & Covariates
 # ......................................
-## (HW1.Q6 ) 
+## (HW1.Q5 ) 
+### A. Prenatal Care (Exposure) 
+#### i
+table(births$mdif, useNA = "always") 
 
-# Date variables
-births$dob_d = ymd(births$dob) # leave dobmonth, day, year as is.
+#### ii
+# See data dictionary, but 88 means no early prenatal care and 99 means missing
 
-### A. Outcome variables - to do later: double check with Sara!
+#### iii
+births$mdif[births$mdif==99] <- NA 
 
-### Gestational Age: weeks (716.A1.1)
+#### iv
+boxplot(births$mdif[births$mdif != 88], main="Month Prenatal Care Began, \n Excluding Unkowns and No Prenatal Care")
+
+#### v
+births$pnc5 <- ifelse(births$mdif <= 5, 1, 0) 
+
+#### vi
+births$pnc5_f <- factor(births$pnc5, levels=c(0,1), labels=c("No Early PNC", "Early PNC"))
+
+#### vii
+table(births$mdif, births$pnc5_f, useNA = "always")
+
+
+# (HW1.Q5 continued) 
+### B. Preterm Birth (Outcome) 
+#### i
 hist(births$wksgest) #quick look
-table(births$wksgest, useNA = "always") #table it
-sd(births$wksgest)
-quantile(births$wksgest, probs=c(.05,.95))
-births$pwk = ifelse(births$wksgest>37, 17, births$wksgest-19.5) #A3.1 pwk - person time at risk.
-table(births$wksgest, births$pwk) #TODO - this isn't right. See the 17.5 record.
+#### ii
+births$preterm <- ifelse(births$wksgest >= 20 &births$wksgest < 37, 1,
+                                     ifelse(births$wksgest >= 37 & births$wksgest < 99, 0, NA)
+                        )
 
-# preterm variable - (716.A4.1) weird order here.
-hist(births$wksgest)
-births$hx_preterm = births$ppb #already exists as a hx of preterm birth.
-table(cut(births$wksgest, breaks = c(0,19,36,99), labels =  c("too young", "preterm", "term"))) #should be no births too young at this point.
-births$preterm_f = cut(births$wksgest, breaks = c(19,36,99), labels =  c("preterm", "term")) #should be no births too young at this point.
-table(births$wksgest, births$preterm_f)
-births$preterm = ifelse(births$preterm_f=="term", 0, 1) #as int, might use later.
+#### iii
+births$preterm_f <- factor(births$preterm, levels=c(0,1), labels=c("term", "preterm"))
 
-### Prenatal / pnc5
-summary(births$visits) # (716.A1.B1.1)
-births$visits[births$visits==99] = NA
-table(births$visits, useNA="always") #Looks ok
-hist(births$visits)
-births$mdif[births$mdif %in% c(99)] = NA # (716.A1.B2.1) pnc5
-births$pnc5 = ifelse(births$mdif<=5, 1, 0) #NA carries forward
-table(births$pnc5, births$mdif, useNA = "always")
-births$pnc5_f = factor(births$pnc5, levels=0:1, labels = c("No PNC before 5 mo", "PNC starts in first 5 mo"))
+#### iv
+births$preterm_f <- cut(births$wksgest, breaks = c(0,19,36,99), labels =  c("too young", "preterm", "term")) #should be no births too young at this point
 
-### SMOKING - NOTE: We used to have CIGBEF and CIGDUR, not sure what happened. (716.A1.C9)
-births$smoker = births$cigbef # retain old variable
-births$smoker[births$smoker=="U"] = NA
-births$smoker = ifelse(births$smoker == "N", 0, 1)
-births$smoker_f = factor(births$smoker, levels=0:1, labels=c("Non smoker", "Smoker"))
-table(births$smoker_f, useNA="always")
+# (HW1.Q5 continued) 
+### C. Plurality (covariate) 
+#### i
+table(births$plur, useNA = "always") # looks fine, no 9 values for unknown
 
-### sex (716.A1.C10)
-table(births$sex)
-births$sex[births$sex==9] = NA
-births$sex = factor(births$sex, levels=1:2, labels=c("Male", "Female"))
-table(births$sex)
+# (HW1.Q5 continued) 
+### D. Maternal Age (covariate) 
+#### i
+table(births$mage, useNA = "always") 
 
-### Race-eth: FIX Back out of using this formatter.
-# Typically I might save these recodes in a csv file rather than have constants in my code...
-formatter = read.csv("R format helper 2012.csv", stringsAsFactors=F) 
-formatter[formatter$variable=="mrace",]
-births$race_f = factor(births$mrace, levels = 1:4, 
-                       labels=formatter[formatter$variable=="mrace",]$recode, 
-                       ordered = T) # a few ways to do this.
-births$raceeth = ifelse(births$mrace == 1 & births$methnic == "N", "WnH", 
-                        ifelse(births$mrace == 1 & births$methnic == "Y", "WH", 
-                               ifelse(births$mrace==2, "AA", 
-                                      ifelse(births$mrace==3, "AI/AN", "Other"))))
-births$raceeth_f = factor(births$raceeth, levels=c("WnH", "AA", "WH", "AI/AN", "Other"))
-table(births$race_f, births$methnic, births$raceeth_f)
+#### ii
+# See data dictionary, but 99 means misssing
 
-births$mage[births$mage == 99] = NA
+#### iii
+births$mage[births$mage==99] <- NA 
 
-table(births$wksgest)
-births$wksgest[births$wksgest==99] = NA # Very common syntax
+#### iv
+par(mfrow=c(1,2))
+boxplot(births$mage, main="Boxplot of Maternal Age Distribution")
+plot(density(births$mage), main="Density Plot of Maternal Age Distribution")
+
+#### v
+births$mage_centered <- births$mage - mean(births$mage, na.rm = T)
+hist(births$mage) # looks to be expected
+summary(births$mage)
+
+# (HW1.Q5 continued) 
+### E. Cigarette Use (covariate) 
+#### i
+table(births$cigdur, useNA = "always") # check to see what values are in cigdur
+births$cigdur <- ifelse(births$cigdur == "Y", 1, 
+                     ifelse(births$cigdur == "N", 0, NA)) # NA for when case is U - i.e. unknown
+
+#### ii
+births$smoker_f <- factor(births$cigdur, levels=c(0,1), labels=c("Non-smoker", "Smoker"))
+
+#### ii
+table(births$cigdur, births$smoker_f, useNA = "always")
+
+
+
+# (HW1.Q5 continued) 
+### F. Date of Birth (covariate) 
+#### i
+# https://github.com/tidyverse/lubridate
+#### ii
+?lubridate
+vignette("lubridate") 
+
+#### iii
+library(lubridate) # normally this would go at the top of the script under a packages chunk 
+
+#### iv
+births$dob_d <- lubridate::ymd(births$dob)
+
+# (HW1.Q5 continued) 
+### G. Sex (covariate) 
+#### i
+table(births$sex, useNA = "always") # check what initial values are
+births$sex[births$sex==9] <- NA
+births$sex_f <- factor(births$sex, levels=c(1,2), labels=c("Male", "Female"))
+table(births$sex_f, births$sex, useNA="always")
+
+# (HW1.Q5 continued) 
+### G. Maternal Race/Ethnicity (covariate) 
+#### i
+table(births$mrace, births$methnic, useNA = "always") # check what initial values are
+
+## ii
+mergedf <- data.frame(
+  mrace = c(sort(rep(seq(1,4),3))),
+  methnic = as.character(rep(c("Y", "N", "U"), 4)),
+  raceeth_f =factor(c("White Hispanic", "White non-Hispanic", "Other",
+                      rep("African American", 3), 
+                      rep("American Indian or Alaska Native", 3),
+                      rep("Other", 3)
+  )
+  ), 
+  stringsAsFactors = F)
+
+births <- merge(x=births, y=mergedf, by=c("mrace", "methnic"))
+
+#### iii
+table(births$mrace, births$methnic, births$raceeth_f, useNA = "always") # looks good
+
+
+
+
+# (HW1.Q6) 
+## A
+CreateTableOne(vars = c("preterm_f"), 
+               strata = c("mage", "pnc5_f", "smoker_f", "sex_f"),
+               data = births)
+
+## B
+mice::md.pattern(births)
+
+## C
+ggplot2:ggpairs(data = births[1:1000, c("pnc5_f", "preterm_f")],
+        title="Exposure versue Outcome for First 1,000 Obserations")
+
+
 # ......................................
-# NOTES: 
+# End Homework 1
 # ......................................
+
+
 
 # ......................................
 # Eligibility criteria & core recoding  (HW2 part 1)

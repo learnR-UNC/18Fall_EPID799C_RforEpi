@@ -1,27 +1,31 @@
 #............................
 # Births 2012 Analysis for EPID 799C
 # Mike Dolan Fliss, August 2017
-#............................
-# Aim: Does early prenatal care (<month 5) decrease the risk of preterm (<week 37) birth? # (HW1.Q1a)
-#............................
+# Aim: Does early prenatal care (<month 5) decrease the risk of preterm (<week 37) birth?
+# (This Descriptive header is HW1.Q1a)
+#............................ (<- example of HW1.Q1b, comment bar)
 # Project Notes:
-# Birth Certificate Revisions: https://www.cdc.gov/nchs/nvss/vital_certificate_revisions.htm 
+# Birth Certificate Revisions: https://www.cdc.gov/nchs/nvss/vital_certificate_revisions.htm (HW1.Q1d, clickable link)
 #............................
 
 #............................
-# Libraries, directories, load data ####
+# Libraries, directories, load data (HW1.Q1f) ####
 #............................
-# May need to install these packages in advance on your local machine.
+# NOTE: May need to install these packages in advance on your local machine.
 # install.packages("tableone")
-library(tidyverse) # for ggplot, dplyr in HWX
+library(tidyverse) # for ggplot, dplyr in HWX (<- example of a post-line code comment, HW1.Q1c)
 library(lubridate) # for dates in HWX
 library(tableone) # used in HWX
 
+# Set directories. 
 data_dir = paste0(getwd(), "/data")
 output_dir = paste0(getwd(), "/data")
 # map_dir = paste0(data_dir, "/GIS") # used later
+# Note you'll need to set different ones with setwd()! Since we're building this as a github repo the wd defaults to script dir.
 
-
+#............................
+# Read data (HW1.Q2) ####
+#............................
 births = read.csv("data/births2012.csv", stringsAsFactors = F) # (HW1.Q2a)
 head(births) # (HW1.Q2b)
 #births = read.csv("births2012_small.csv", stringsAsFactors = F) #start with small version
@@ -34,7 +38,7 @@ names(births) = tolower(names(births)) #drop names to lowercase
 
 
 # ......................................
-# Exploring Data - HW1 Q3a
+# Exploring Data - (HW1Q3 & HW1Q4) ####
 # ......................................
 dim(births) # (HW1.Q3b) 
 summary(births[,c("wksgest", "mdif")]) # (HW1.Q3c) 
@@ -54,9 +58,9 @@ GGally::ggpairs(births_sample) # later I'll demo how to use color here after som
 
 
 # ......................................
-# Recode Variables: Exposure, Outcome & Covariates
+# Recode Variables: Exposure, Outcome & Covariates (HW1.Q5) ####
 # ......................................
-## (HW1.Q5 ) 
+## (HW1.Q5) 
 ### A. Prenatal Care (Exposure) 
 #### i
 table(births$mdif, useNA = "always") 
@@ -135,7 +139,6 @@ births$smoker_f <- factor(births$cigdur, levels=c(0,1), labels=c("Non-smoker", "
 table(births$cigdur, births$smoker_f, useNA = "always")
 
 
-
 # (HW1.Q5 continued) 
 ### F. Date of Birth (covariate) 
 #### i
@@ -179,9 +182,11 @@ births <- merge(x=births, y=mergedf, by=c("mrace", "methnic"))
 
 #### iii
 table(births$mrace, births$methnic, births$raceeth_f, useNA = "always") # looks good
+# ......................................
 
-
-
+# ......................................
+# Optional data exploration (HW1.Q6) ####
+# ......................................
 
 # (HW1.Q6) 
 ## A
@@ -195,10 +200,10 @@ mice::md.pattern(births)
 ## C
 ggplot2:ggpairs(data = births[1:1000, c("pnc5_f", "preterm_f")],
         title="Exposure versue Outcome for First 1,000 Obserations")
-
+# ......................................
 
 # ......................................
-# End Homework 1
+# End Homework 1 ####
 # ......................................
 
 

@@ -22,6 +22,8 @@ data_dir = paste0(getwd(), "/data")
 output_dir = paste0(getwd(), "/data")
 # map_dir = paste0(data_dir, "/GIS") # used later
 # Note you'll need to set different ones with setwd()! Since we're building this as a github repo the wd defaults to script dir.
+# More on git here: http://r-bio.github.io/intro-git-rstudio/ . There's also a datacamp on it.
+#............................
 
 #............................
 # Read data (HW1.Q2) ####

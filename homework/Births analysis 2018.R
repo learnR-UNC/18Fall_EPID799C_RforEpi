@@ -14,10 +14,9 @@
 #............................
 # NOTE: May need to install these packages in advance on your local machine.
 # install.packages("tableone")
-library(tidyverse) # for ggplot, dplyr in HWX (<- example of a post-line code comment, HW1.Q1c)
-library(lubridate) # for dates in HWX
-library(tableone) # used in HWX
-library(tableone)
+library(tidyverse) # for ggplot, dplyr in HW1-4 (<- example of a post-line code comment, HW1.Q1c)
+library(lubridate) # for dates in HW2
+library(tableone) # used in HW2
 # Set directories. 
 data_dir = paste0(getwd(), "/data")
 output_dir = paste0(getwd(), "/data")
@@ -325,7 +324,7 @@ ggplot() +
   ylab("Weeks of Gestations factorized") + xlab("mage") + 
   theme_bw()
 
-
+## end of homework 2
 
 
 
@@ -338,66 +337,121 @@ ggplot() +
 # ......................................
 # Functional Form of maternal age w/ dplyr and ggplot2 #(HW3 part 1)
 # ......................................
-mage_df = births %>% group_by(mage) %>%
+
+mage_df = births %>% group_by(mage) %>% #(HW3.1.1) setup 
   summarize(n=n(), 
             pct_earlyPNC = mean(pnc5, na.rm=T),
             pct_preterm = mean(preterm, na.rm=T))
-head(mage_df)
+head(mage_df) #(HW3.1) answer 
 
-ggplot(mage_df, aes(mage, pct_preterm))+
+#(HW3.1.2A)  
+ggplot(mage_df, aes(mage, pct_preterm))+ 
   geom_point(aes(size=n))+
-  geom_smooth(aes(weight=n), color="blue")+
-  geom_smooth(aes(weight=n), method="lm", formula=y ~ poly(x, 2), color="red", lty=2)+
+  geom_smooth(aes(weight=n), color="blue", method="loess")+
   labs(title="% Preterm vs. Maternal Age", 
        x="maternal age", y="% preterm", 
        subtitle="Investigating function form of maternal age", 
        caption="Note for future glms: Seems quadratic. Blue is loess, red is square linear.")
+
+#(HW3.1.2B) Optional Challenge  
+ggplot(mage_df, aes(mage, pct_preterm)) + 
+  geom_point(aes(size=n)) +
+  geom_smooth(aes(weight=n), color="blue") +
+  geom_smooth(aes(weight=n), method="lm", formula=y ~ poly(x, 2), color="red", lty=2) + # this is the square error term
+  labs(title="% Preterm vs. Maternal Age", 
+       x="maternal age", y="% preterm", 
+       subtitle="Investigating function form of maternal age", 
+       caption="Note for future glms: Seems quadratic. Blue is loess, red is square linear.")
+
+
+
+
 # ......................................
 
 
 # ......................................
 # County specific stories w/ dplyr and ggplot2 #(HW3 part 2)
 # ......................................
-# Load format helper
-format_helper = read.csv("birth format helper 2012.csv", stringsAsFactors = F)
-
+#(HW3.2.3A) 
+format_helper = read.csv("data/birth-format-helper-2012.csv", stringsAsFactors = F)
+#(HW3.2.3A.i) 
 county_data = format_helper[format_helper$variable == "cores",] #base R way
+#(HW3.2.3A.ii) 
 names(county_data) = c("variable", "cores", "county_name", "FIPS")
+#(HW3.2.3A.iii) 
 county_data$var = NULL #drop in base R. There are other ways...
+#(HW3.2.3A.iv) 
 county_data$cores = as.numeric(county_data$cores)
+str(county_data$cores)
 
-head(format_helper) #dplyr way
+#(HW3.2.3B) same results as above but now using "tidy" methods and more human readable 
 county_data = format_helper %>% 
   filter(variable == "cores") %>%
   rename(cores=code, county_name=recode, FIPS=helper) %>% 
   select(-variable) %>%
   mutate(cores = as.numeric(cores))
 
-
+#(HW3.2.3C)
 # Load tier data 
 # https://www.nccommerce.com/research-publications/incentive-reports/county-tier-designations 
-county_tiers = read.csv("county_tiers.csv", stringsAsFactors = F) # shell.exec("county_tiers.csv")
+county_tiers = read.csv("data/county_tiers.csv", stringsAsFactors = F) # shell.exec("county_tiers.csv")
+#(HW3.2.3C.i)
+str(county_tiers$econ_tier)
+#(HW3.2.3C.ii)
 county_tiers$econ_tier = ordered(county_tiers$econ_tier)
-county_tiers$county_name %in% county_data$county_name
 
+#(HW3.2.3D)
 county_df = births %>% group_by(cores) %>%
   summarize(n=n(), 
             pct_earlyPNC = mean(pnc5, na.rm=T),
             pct_preterm = mean(preterm, na.rm=T)) %>%
   left_join(county_data) %>% 
   left_join(county_tiers)
-head(county_df)
+head(county_df) #(HW3.2.3D) output
 
-# Create a plot
-ggplot(county_df, aes(x=pct_earlyPNC, y=pct_preterm, color=econ_tier))+
+
+#(HW3.2.3E) write this out to your local directory
+write.csv(x=county_df, "data/county_birth_summary.csv", row.names = F, quote = F)
+
+
+#(HW3.2.4)
+# Create a plot with ggplot
+plotObj <- ggplot(county_df, aes(x=pct_earlyPNC, y=pct_preterm, color=econ_tier))+
   geom_point(aes(size=n))+geom_text(aes(label=county_name), nudge_y=.01, alpha=0.5)+
   geom_smooth(se=F)
+plot(plotObj)
+#(HW3.2.4a)
+plotly::ggplotly(plotObj)
 
-# Practice gather
+
+#(HW3.2.5A)
 county_name_ord = factor(county_df$county_name, county_df$county_name[order(county_df$pct_earlyPNC)], ordered=T)
-county_df %>% mutate(county_name_ord = county_name_ord) %>%
-  gather(key=variable, value=value, n, pct_earlyPNC, pct_preterm) %>% head()
-ggplot(aes(county_name_ord, value, fill=econ_tier))+geom_col()+coord_flip()+facet_wrap(~variable, scales = "free_x")
+
+#(HW3.2.5B)
+county_df <- county_df %>% 
+  mutate(county_name_ord = county_name_ord) %>%
+  gather(key=variable, value=value, n, pct_earlyPNC, pct_preterm) %>% 
+  head()
+#(HW3.2.5C)
+county_df %>% 
+ggplot(aes(county_name_ord, value, fill=econ_tier)) + 
+  geom_col() + 
+  coord_flip() + 
+  facet_wrap(~variable, scales = "free_x")
+
+
+## end of homework 3
+
+
+
+
+
+
+
+
+
+
+
 # ......................................
 
 # ......................................

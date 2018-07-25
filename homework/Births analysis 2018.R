@@ -14,10 +14,9 @@
 #............................
 # NOTE: May need to install these packages in advance on your local machine.
 # install.packages("tableone")
-library(tidyverse) # for ggplot, dplyr in HWX (<- example of a post-line code comment, HW1.Q1c)
-library(lubridate) # for dates in HWX
-library(tableone) # used in HWX
-
+library(tidyverse) # for ggplot, dplyr in HW1-4 (<- example of a post-line code comment, HW1.Q1c)
+library(lubridate) # for dates in HW2
+library(tableone) # used in HW2
 # Set directories. 
 data_dir = paste0(getwd(), "/data")
 output_dir = paste0(getwd(), "/data")
@@ -214,71 +213,80 @@ ggplot2:ggpairs(data = births[1:1000, c("pnc5_f", "preterm_f")],
 # Eligibility criteria & core recoding  (HW2 part 1)
 # ......................................
 # Create many inclusion variables, all of which have to be =1 to be included.
-births$weeknum = week(births$dob_d) #thanks, lubridate! (HW2.Q1)
-# 1. Has gestation data (weeks), and at least 20 weeks gestation pre-birth (weeks >= 20)
-births$incl_hasgest = as.numeric(!is.na(births$wksgest)) #(HW2.Q2a)
-births$incl_enoughgest = as.numeric(births$wksgest >= 20) #(HW2.Q2b)
-# 2. Less than 20 weeks gestation before Jan 1 of year (LMP > Aug 20), or weeks-weeknum>=19, w/ weeknum=1 for Jan 1-7
-births$incl_lateenough = as.numeric(births$wksgest - births$weeknum <= 19) #(HW2.Q2c)
-# 3. Start date of gestation was 45 (max gest in'11) w prior to Jan 1 of next year, so all births are observed in year
-births$incl_earlyenough = as.numeric(births$weeknum - births$wksgest <=7) #(HW2.Q2d)
-# 4. singletons only
+births$weeknum = week(births$dob_d) #thanks, lubridate! (HW2.1.Q1)
+# a. Has gestation data (weeks), and at least 20 weeks gestation pre-birth (weeks >= 20)
+births$incl_hasgest = as.numeric(!is.na(births$wksgest)) #(HW2.1.Q2a)
+births$incl_enoughgest = as.numeric(births$wksgest >= 20) #(HW2.1.Q2b)
+# b. Less than 20 weeks gestation before Jan 1 of year (LMP > Aug 20), or weeks-weeknum>=19, w/ weeknum=1 for Jan 1-7
+births$incl_lateenough = as.numeric(births$wksgest - births$weeknum <= 19) #(HW2.1.Q2c)
+# c. Start date of gestation was 45 (max gest in'11) w prior to Jan 1 of next year, so all births are observed in year
+births$incl_earlyenough = as.numeric(births$weeknum - births$wksgest <=7) #(HW2.1.Q2d)
+# d. singletons only
 births$incl_singleton = as.numeric(births$plur == 1) #(HW2.Q2e)
 # births$incl_hasnumdata = as.numeric(births$plur != 9) #not bothering to recode is ok. Isn't this one redundant with above?
-# 5. no congential anomalies - Let's use apply for efficiency
-congen_anom = c("anen","mnsb","cchd", "cdh", "omph","gast", "limb", "cl","cp","dowt","cdit", "hypo") #(HW2.Q3a)
-births$incl_hasanomdata = as.numeric(apply(births[,congen_anom]!="U", FUN=all, 1)) #All not missing = not any missing
-births$incl_noanomalies = as.numeric(apply(births[,congen_anom]=="N", FUN=all, 1)) #All not present #(HW2.Q3b)
+# e. no congential anomalies - Let's use apply for efficiency
+congen_anom = c("anen","mnsb","cchd", "cdh", "omph","gast", "limb", "cl","cp","dowt","cdit", "hypo") #(HW2.1.Q3a)
+  # below is just a useful aside to check that there is No "U" (i.e. none missing) before running the code to make the new variable
+  births$incl_hasanomdata = as.numeric(apply(births[,congen_anom]!="U", FUN=all, 1)) #All not missing = not any missing
+births$incl_noanomalies = as.numeric(apply(births[,congen_anom]=="N", FUN=all, 1)) #All not present #(HW2.1.Q3b)
 
-grepl("a", c("banana", "peach", "ornge"))
-names(births)
-eligibility_drops = nrow(births) - apply(births[,grepl("incl_", names(births))], FUN=sum, MARGIN = 2, na.rm=T)
-eligibility_drops #(HW2.Q4b optional)
 
-births$include_allpass = apply(births[, grepl("incl_", names(births))], FUN=all, MARGIN = 1) #(HW2.Q3c)
-old_births = births #Small enough dataset that we might like to hold it. births=old_births #(HW2.Q4a)
-births = births[births$include_allpass, ]
+old_births <- births #(HW2.1.Q4a)
 
-warnings() # Just letting me know I'm casting those 1s as TRUEs. That's ok.
+# Below is the example grepl (HW2.1.Q4b)
+grepl("a", c("banana", "peach", "ornge")) 
 
+eligibility_drops = nrow(births) - apply(births[,grepl("incl_", names(births))], FUN=sum, MARGIN = 2, na.rm=T) #(HW2.1.Q4c optional)
+eligibility_drops #(HW2.1.Q4c optional)
+
+births$include_allpass = apply(births[, grepl("incl_", names(births))], FUN=all, MARGIN = 1) #(HW2.1.Q4d indicator for the inclusion criteria yes/no)
+
+births = births[births$include_allpass, ] #(HW2.1.Q4e now apply the inclusion criteria to subset your births data set)
+  # to see what warnings are being thrown you can type warnings() -- below:  
+  warnings() # Just letting me know I'm casting those 1s as TRUEs. That's ok.
+
+dim(old_births) #(HW2.1.Q4f)
+dim(births) #(HW2.1.Q4f)
+
+
+#(HW2.1.Q5 Optional Challenge)
 # Results of exclusion
 cat("Leaving eligibility checks with n =", formatC(nrow(births), big.mark = ","), 
-    "births of original", formatC(nrow(old_births), big.mark = ",")) #(HW2.Q4d)
+    "births of original", formatC(nrow(old_births), big.mark = ",")) #(HW2.1.Q4d)
 names(births)
 vars_of_interest = c("pnc5_f", "preterm_f", "smoker_f", "wksgest", "sex", "meduc", "raceeth_f", "weeknum", "include_allpass")
-CreateTableOne(data=old_births[, vars_of_interest]) #(HW2.Q5)
-CreateTableOne(data=old_births[, vars_of_interest], strata="include_allpass")
+tableone::CreateTableOne(data=births[, vars_of_interest]) #(HW2.1.Q5)
+tableone::CreateTableOne(data=births[, vars_of_interest], strata="include_allpass")
 # ......................................
-# NOTES: Finishes with 62,370 of 122,513 on 8/5/2017. Double check with Sarah.
-# ......................................
-# dplyr: https://blog.rstudio.org/2016/06/27/dplyr-0-5-0/
+# NOTES: Finishes with 62,370 of 122,513 
 # ......................................
 
 
 # ......................................
 # Explore data (HW2 part 2)
 # ......................................
-#A1.2: Graph weeks
-npop = formatC(sum(!is.na(births$wksgest)), big.mark=',') #(HW2.Q6a)
+#(HW2.2.Q6A) Graph weeks
+npop = formatC(sum(!is.na(births$wksgest)), big.mark=',') #(HW2.2.Q6a)
 ggplot(data=births, aes(x=wksgest, y=..prop..))+geom_bar() + #Does what you need, as does geom_histogram()
   labs(title="Figure 1: Proportional distribution of gestational age at birth", 
-       subtitle=paste0("From ", npop, " births in NC in 2003 from the NC SCHS, posted at Odum Institute"), 
+       subtitle=paste0("From ", npop, " births in NC in 2012 from the NC SCHS, posted at Odum Institute"), 
        x="Weeks of gestation", y="Proportion of population") + 
   theme_bw()
 
-#A2.1 : Working with weeknum. - should double check this. Just used %V above.
-hist(births$weeknum, breaks = min(births$weeknum):max(births$weeknum)) # Looks weird
 
-#A2.2 : Graph weeknum #(HW2.Q6b)
+
+  #A2.1 : Working with weeknum. - should double check this. Just used %V above.
+  hist(births$weeknum, breaks = min(births$weeknum):max(births$weeknum)) # Looks weird
+
+#(HW2.2.Q6B) : Graph weeknum 
 ggplot(births, aes(x=weeknum, y=..prop..)) + geom_bar() +
   labs(title="Throwaway: Investigating Weeknum", 
        subtitle="Note to self : Weeknum needs some work, doesn't quite match SAS", 
        x="Week number of birth", y="Proportion of population") +
   theme_bw()
 
-#A2.3 : weeks vs. weeknum #(HW2.Q6c)
-# Sampling here for R markdown....
-ggplot(births[sample(1:nrow(births), 1000),], aes(x=wksgest, y=weeknum)) + 
+#(HW2.Q6c) weeks vs. weeknum 
+ggplot(births, aes(x=wksgest, y=weeknum)) + 
   geom_jitter(width=1, height=1, pch=".", alpha=0.3)+
   labs(title="Throwaway: week vs. weeknum", 
        subtitle="Note to self: Does this match what we expect given the inclusion criteria?", 
@@ -286,92 +294,164 @@ ggplot(births[sample(1:nrow(births), 1000),], aes(x=wksgest, y=weeknum)) +
   theme_bw()
 
 
-# Print some useful Table 1 versions
-table(births$mage)
-births$mage_cat_f = cut(births$mage, seq(9, 59, by=10))
-table(births$mage, births$mage_cat_f)
+#(HW2.2.Q6D)
+# Note here that you can ggplot objects that are "appendable" 
+# which is to say you can add on new features by adding on LAYERS 
+plotObj <- ggplot(births, aes(x=wksgest, y=weeknum)) + 
+  geom_jitter(width=1, height=1, pch=".", alpha=0.3)+
+  labs(title="Throwaway: week vs. weeknum", 
+       subtitle="Note to self: Does this match what we expect given the inclusion criteria?", 
+       x="weeks of gestation", y="week number of birth in year")+
+  theme_bw()
 
-#Outcome strata - preterm
-t1=CreateTableOne(data=births[,c("pnc5_f", "preterm_f", "smoker","sex", "race_f", "wksgest", "mage", "meduc")], 
-                  strata=c("preterm_f"), includeNA = T, argsNonNormal = c("wksgest"))
-print(t1,showAllLevels=T )
-# Thinking ahead to EMM: Race/eth variable
-t2=CreateTableOne(data=births[,c("pnc5_f", "preterm_f", "smoker","sex", "race_f", "wksgest", "mage", "meduc")], 
-                  strata=c("race_f"), includeNA = T, argsNonNormal = c("wksgest"))
-print(t2, showAllLevels=T) #print.TableOne # let's see the guts.
-# Mage - thinking ahead to functional form at least...
-t3=CreateTableOne(data=births[,c("pnc5_f", "preterm_f", "smoker","sex", "race_f", "wksgest", "mage", "meduc", "mage_cat_f")], 
-                  strata=c("mage_cat_f"), includeNA = T, argsNonNormal = c("wksgest"))
-print(t3) #print.TableOne # let's see the guts.
+plot(plotObj)
 
-#How to get this to excel... could be improved
-write.table(print(t2, showAllLevels=T, quote = T), "clipboard", sep="\t") 
-# ......................................
+## append new feature
+plotObj + geom_bin2d(binwidth=1, alpha=0.8)
+
+
+
+
+
+#(HW2.2.Q6D)
+require("ggridges")
+ggplot() + 
+  geom_density_ridges_gradient(data=births, aes(x=mage, y=factor(cut(wksgest, 10)), fill=..x..)) + 
+  scale_fill_gradientn(colors=c("#fc8d59", "#ffffbf", "#91cf60")) + 
+  facet_grid(meduc~raceeth_f) +
+  ggtitle("Distribution of Weeks Gestation by Birth Outcome") + 
+  labs(subtitle="This is the continuous variable we dichotomized") + 
+  ylab("Weeks of Gestations factorized") + xlab("mage") + 
+  theme_bw()
+
+## end of homework 2
+
+
+
+
+
+
+
 
 
 # ......................................
 # Functional Form of maternal age w/ dplyr and ggplot2 #(HW3 part 1)
 # ......................................
-mage_df = births %>% group_by(mage) %>%
+
+mage_df = births %>% group_by(mage) %>% #(HW3.1.1) setup 
   summarize(n=n(), 
             pct_earlyPNC = mean(pnc5, na.rm=T),
             pct_preterm = mean(preterm, na.rm=T))
-head(mage_df)
+head(mage_df) #(HW3.1) answer 
 
-ggplot(mage_df, aes(mage, pct_preterm))+
+#(HW3.1.2A)  
+ggplot(mage_df, aes(mage, pct_preterm))+ 
   geom_point(aes(size=n))+
-  geom_smooth(aes(weight=n), color="blue")+
-  geom_smooth(aes(weight=n), method="lm", formula=y ~ poly(x, 2), color="red", lty=2)+
+  geom_smooth(aes(weight=n), color="blue", method="loess")+
   labs(title="% Preterm vs. Maternal Age", 
        x="maternal age", y="% preterm", 
        subtitle="Investigating function form of maternal age", 
        caption="Note for future glms: Seems quadratic. Blue is loess, red is square linear.")
+
+#(HW3.1.2B) Optional Challenge  
+ggplot(mage_df, aes(mage, pct_preterm)) + 
+  geom_point(aes(size=n)) +
+  geom_smooth(aes(weight=n), color="blue") +
+  geom_smooth(aes(weight=n), method="lm", formula=y ~ poly(x, 2), color="red", lty=2) + # this is the square error term
+  labs(title="% Preterm vs. Maternal Age", 
+       x="maternal age", y="% preterm", 
+       subtitle="Investigating function form of maternal age", 
+       caption="Note for future glms: Seems quadratic. Blue is loess, red is square linear.")
+
+
+
+
 # ......................................
 
 
 # ......................................
 # County specific stories w/ dplyr and ggplot2 #(HW3 part 2)
 # ......................................
-# Load format helper
-format_helper = read.csv("birth format helper 2012.csv", stringsAsFactors = F)
-
+#(HW3.2.3A) 
+format_helper = read.csv("data/birth-format-helper-2012.csv", stringsAsFactors = F)
+#(HW3.2.3A.i) 
 county_data = format_helper[format_helper$variable == "cores",] #base R way
+#(HW3.2.3A.ii) 
 names(county_data) = c("variable", "cores", "county_name", "FIPS")
+#(HW3.2.3A.iii) 
 county_data$var = NULL #drop in base R. There are other ways...
+#(HW3.2.3A.iv) 
 county_data$cores = as.numeric(county_data$cores)
+str(county_data$cores)
 
-head(format_helper) #dplyr way
+#(HW3.2.3B) same results as above but now using "tidy" methods and more human readable 
 county_data = format_helper %>% 
   filter(variable == "cores") %>%
   rename(cores=code, county_name=recode, FIPS=helper) %>% 
   select(-variable) %>%
   mutate(cores = as.numeric(cores))
 
-
+#(HW3.2.3C)
 # Load tier data 
 # https://www.nccommerce.com/research-publications/incentive-reports/county-tier-designations 
-county_tiers = read.csv("county_tiers.csv", stringsAsFactors = F) # shell.exec("county_tiers.csv")
+county_tiers = read.csv("data/county_tiers.csv", stringsAsFactors = F) # shell.exec("county_tiers.csv")
+#(HW3.2.3C.i)
+str(county_tiers$econ_tier)
+#(HW3.2.3C.ii)
 county_tiers$econ_tier = ordered(county_tiers$econ_tier)
-county_tiers$county_name %in% county_data$county_name
 
+#(HW3.2.3D)
 county_df = births %>% group_by(cores) %>%
   summarize(n=n(), 
             pct_earlyPNC = mean(pnc5, na.rm=T),
             pct_preterm = mean(preterm, na.rm=T)) %>%
   left_join(county_data) %>% 
   left_join(county_tiers)
-head(county_df)
+head(county_df) #(HW3.2.3D) output
 
-# Create a plot
-ggplot(county_df, aes(x=pct_earlyPNC, y=pct_preterm, color=econ_tier))+
+
+#(HW3.2.3E) write this out to your local directory
+write.csv(x=county_df, "data/county_birth_summary.csv", row.names = F, quote = F)
+
+
+#(HW3.2.4)
+# Create a plot with ggplot
+plotObj <- ggplot(county_df, aes(x=pct_earlyPNC, y=pct_preterm, color=econ_tier))+
   geom_point(aes(size=n))+geom_text(aes(label=county_name), nudge_y=.01, alpha=0.5)+
   geom_smooth(se=F)
+plot(plotObj)
+#(HW3.2.4a)
+plotly::ggplotly(plotObj)
 
-# Practice gather
+
+#(HW3.2.5A)
 county_name_ord = factor(county_df$county_name, county_df$county_name[order(county_df$pct_earlyPNC)], ordered=T)
-county_df %>% mutate(county_name_ord = county_name_ord) %>%
-  gather(key=variable, value=value, n, pct_earlyPNC, pct_preterm) %>% head()
-ggplot(aes(county_name_ord, value, fill=econ_tier))+geom_col()+coord_flip()+facet_wrap(~variable, scales = "free_x")
+
+#(HW3.2.5B)
+county_df <- county_df %>% 
+  mutate(county_name_ord = county_name_ord) %>%
+  gather(key=variable, value=value, n, pct_earlyPNC, pct_preterm) %>% 
+  head()
+#(HW3.2.5C)
+county_df %>% 
+ggplot(aes(county_name_ord, value, fill=econ_tier)) + 
+  geom_col() + 
+  coord_flip() + 
+  facet_wrap(~variable, scales = "free_x")
+
+
+## end of homework 3
+
+
+
+
+
+
+
+
+
+
+
 # ......................................
 
 # ......................................
@@ -891,3 +971,37 @@ plot(nc_counties); plot(nc_counties[orange_neighbors[,1],], col="blue", add=T)
 # http://www.kevjohnson.org/making-maps-in-r/
 # https://www.google.com/search?q=north+carolina+counties+table&tbm=isch&tbo=u&source=univ&sa=X&ved=0ahUKEwiLnYyDxNbNAhVQzGMKHUAUD4kQsAQIHQ&biw=1536&bih=716
 ###############################################################################
+
+
+
+
+
+
+
+
+#............................................
+# PARKING LOT (useful code without questions)
+#............................................
+
+# Print some useful Table 1 versions
+table(births$mage)
+births$mage_cat_f = cut(births$mage, seq(9, 59, by=10))
+table(births$mage, births$mage_cat_f)
+
+#Outcome strata - preterm
+t1=CreateTableOne(data=births[,c("pnc5_f", "preterm_f", "smoker","sex", "race_f", "wksgest", "mage", "meduc")], 
+                  strata=c("preterm_f"), includeNA = T, argsNonNormal = c("wksgest"))
+print(t1,showAllLevels=T )
+# Thinking ahead to EMM: Race/eth variable
+t2=CreateTableOne(data=births[,c("pnc5_f", "preterm_f", "smoker","sex", "race_f", "wksgest", "mage", "meduc")], 
+                  strata=c("race_f"), includeNA = T, argsNonNormal = c("wksgest"))
+print(t2, showAllLevels=T) #print.TableOne # let's see the guts.
+# Mage - thinking ahead to functional form at least...
+t3=CreateTableOne(data=births[,c("pnc5_f", "preterm_f", "smoker","sex", "race_f", "wksgest", "mage", "meduc", "mage_cat_f")], 
+                  strata=c("mage_cat_f"), includeNA = T, argsNonNormal = c("wksgest"))
+print(t3) #print.TableOne # let's see the guts.
+
+#How to get this to excel... could be improved
+write.table(print(t2, showAllLevels=T, quote = T), "clipboard", sep="\t") 
+# ......................................
+

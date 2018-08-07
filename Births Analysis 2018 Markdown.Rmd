@@ -1,30 +1,402 @@
 ---
-title: "Births Analysis 2012 Markdown"
-author: "Mike Dolan Fliss"
-date: "July 24, 2018"
-output: html_document
+title: "Births Analysis 2012 Markdown for 799C 2018"
+author: "Mike Dolan Fliss, Nick Brazeau, & Sara Levintow"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:
+    highlight: tango
+    theme: lumen
+    toc: yes
+    toc_float: yes
+    toc_depth: 3
+    result_folding: hide
+editor_options: 
+  chunk_output_type: console
 ---
+
+<!-- java script and functionality from: https://stackoverflow.com/questions/37755037/how-to-add-code-folding-to-output-chunks-in-rmarkdown-html-documents -->
+
+<script src="js/hideOutput.js"></script>
+
+<!-- Styling out the output buttom here on the fly with CSS -->
+<style>
+    .showopt {
+      background-color: #004c93;
+      color: #FFFFFF; 
+      width: 100px;
+      height: 20px;
+      text-align: center;
+      vertical-align: middle !important;
+      float: right;
+      font-family: sans-serif;
+      border-radius: 8px;
+    }
+    
+    .showopt:hover {
+        background-color: #dfe4f2;
+        color: #004c93;
+    }
+    
+    pre.plot {
+      background-color: white !important;
+    }
+
+</style>
+
+<!-- Styling ordered lists for Rmarkdown -->
+<!-- https://stackoverflow.com/questions/13366820/how-do-you-make-lettered-lists-using-markdown -->
+<style>
+    ol { list-style-type: numeric; }
+</style>
+<style>
+    ol ol { list-style-type: upper-alpha; }
+</style>
+<style>
+    ol ol ol { list-style-type: lower-roman; }
+</style>
+
+
+<!-- TODO --  this CSS script isn't getting picked up... it is in my markdown IDE -->
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+# Acknowledgements
+Several instructors have come before us ... **WORDS**
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+# Overview of Homeworks 1-4
+In this series of homeworks, we will analyze the effect of **prenatal care** (exposure) on **preterm birth** (outcome). To estimate this effect we will need to do the basics of any epidemiology project:  
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+1. Clean the data (i.e. "Datawrangling"" and making the data [tidy](https://vita.had.co.nz/papers/tidy-data.pdf))   
+2. Descriptive Statistics 
+	1. Univariate Analyses
+	2. Bivariate Analyses
+	3. Data Visualization
+	4. More data visualization
+3. Modeling
+  
+_As an added bonus, these homeworks will also cover some basic spatial analyses and other "advanced techniques"._ 
 
-```{r cars}
-summary(cars)
+
+# Homework 1
+## Overview of Homework 1
+The purpose of this homework is to introduce you to the under-the-hood machinery of R and provide some context/practice with data wrangling.
+
+### Question 1, Comments and code structure 
+1. Now that you’ve got the code loaded, let’s think ahead and plan to write well-structured code. Show you can use these organization and commenting techniques throughout the following questions:    
+	1. Include a descriptive header and your research question for the overall analysis (put this as a #comment in your code header). 
+	2. Include “comment bars” for visual breaks. 
+	3. Include descriptive comments, both at the start of a line and after a line of runnable code.  
+	4. Include at least one comment with a relevant, clickable web reference
+	5.  Organize your code into collapsible code blocks 
+	6. Make your first code block loading basic libraries and setting your working directory with `setwd()`. 
+
+<div class="fold o"> 
+```{r, echo=T, warning=F, message=F, results='asis'}
+
+# Please note this is an example of code chunks you may have at the top of a .R but would differ for a Rmarkdown file (which wraps the markdown language)
+
+#............................
+# Births 2012 Analysis for EPID 799C: PNC decrease PT birth? ####
+# Mike Dolan Fliss, August 2017
+# Aim: Does early prenatal care (<month 5) decrease the risk of preterm (<week 37) birth?
+# (This Descriptive header is HW1.Q1a)
+#............................ (<- example of HW1.Q1b, comment bar)
+# Project Notes:
+# Birth Certificate Revisions: https://www.cdc.gov/nchs/nvss/vital_certificate_revisions.htm (HW1.Q1d, clickable link)
+#............................
+
+#............................
+# Libraries, directories, load data (HW1.Q1f) ####
+#............................
+# NOTE: May need to install these packages in advance on your local machine.
+# install.packages("tableone")
+library(tidyverse) # for ggplot, dplyr in HW1-4 (<- example of a post-line code comment, HW1.Q1c)
+library(lubridate) # for dates in HW2
+library(tableone) # used in HW2
+# Set directories. 
+data_dir = paste0(getwd(), "/data")
+output_dir = paste0(getwd(), "/data")
+# map_dir = paste0(data_dir, "/GIS") # used later
+# Note you'll need to set different ones with setwd()! Since we're building this as a github repo the wd defaults to script dir.
+# More on git here: http://r-bio.github.io/intro-git-rstudio/ . There's also a datacamp on it.
+#............................
+
 ```
+</div>
 
-## Including Plots
+### Question 2, Read the file
+1. This assignment will use the dataset births.csv from Sakai.     
+	1. Read in the “full” births2012.csv file into a data.frame called “births,” as we have done in class. This time, use the “stringsAsFactors” parameter set to F or FALSE to avoid R automatically coding character strings as factors. (_In practice you will likely use_ `tidyverse::read_csv` but in this case use `base::read.csv`) 
+	2. Print out the first few rows. What function did you use? (5 points) 
+	3. Optional Challenge: [Read Strings as Factors: An Authorized Biography and StringsAsFactors = sigh](https://simplystatistics.org/2015/07/24/stringsasfactors-an-unauthorized-biography/).  
 
-You can also embed plots, for example:
+<div class="fold o"> 
+```{r, echo=T, warning=F, message=F}
+#............................
+# Read data (HW1.Q2) ####
+#............................
+births = read.csv("data/births2012.csv", stringsAsFactors = F) # (HW1.Q2a)
+names(births) = tolower(names(births)) #drop names to lowercase
+head(births) # (HW1.Q2b)
 
-```{r pressure, echo=FALSE}
-plot(pressure)
 ```
+</div>
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+### Question 3, Basic Operations
+1. Basic operations on datasets 
+	1. Using all of these functions in in code: summary, head, tail, str, names, dim. 
+	2. Create a code chunk called “Exploring Data” 
+	3. Report the number of records and fields in the dataset.  
+	4. Report the five-number summary for the WKSGEST and MDIF variables. 
+	5. Pick three variables we will use for our analysis and report their type (numeric, character, etc.).  
+	
+<div class="fold o"> 
+```{r, echo=T, warning=F, message=F}
+# ......................................
+# Exploring Data - (HW1Q3) ####
+# ......................................
+dim(births) # (HW1.Q3b) 
+summary(births[,c("wksgest", "mdif")]) # (HW1.Q3c) 
+str(births[,c("mage", "wksgest", "mdif")]) # (HW1.Q3d) 
+class(births$mage)
+class(births$wksgest)
+class(births$mdif) 
+str(births$mage)
+str(births$wksgest)
+str(births$mdif)
+
+```
+</div>
+
+
+### Question 4, Subsetting & EDA
+1. Subsetting, loading packages & making graphics 
+	1. In the same “Exploring” code chunk, using the selection operators [], create a smaller version of the births file called births_sample with only the first 1000 rows and with only these variables:"MAGE", "MDIF", "VISITS", "WKSGEST", "MRACE". 
+	2. Plot this smaller dataset all at once using the base plot(births_sample) function. Paste the plot in here. What does this plot show? 
+	3. Optional Challenges: Install and load the package “car”, and plot the smaller dataset using scatterplotMatrix(). If you are familiar with ggplot2, you might try the ggpairs() function in the GGally package. If you’re comfortable with functions, consider using the sample() function to get a random sample for births_sample, instead of the first 1000 rows. 
+
+
+
+<div class="fold o"> 
+```{r, echo=T, warning=F, message=F}
+# ......................................
+# Exploring Data - (HW1Q4) ####
+# ......................................
+## (HW1.Q4) 
+births_sample = births[1:1000, c("mage", "mdif", "visits", "wksgest", "mrace")] #A
+
+plot(births_sample) #B
+
+births_sample = births[sample(nrow(births), 1000), c("mage", "mdif", "visits", "wksgest", "mrace")] #C
+# install.packages(c("car", "GGally"))
+car::scatterplotMatrix(births_sample)
+GGally::ggpairs(births_sample)
+
+```
+</div>
+
+
+### Question 5, Recoding
+1. Recode the following variables we plan to use in our main analysis. _Note that we will learn faster ways to do many of these steps, but for now, use what you know._   
+We’ll be coding integers, factors, and dates.   
+**Suggestion: start a new section called “Recoding.”**.  
+	1. Prenatal Care 
+		1. Create a table of mdif and paste it here 
+		2. What do mdif 88 and mdif 99 mean?  
+		3. Assign 99 to R’s missing value (and 88, eventually, to no early PNC). 
+		4. Create a relevant univariate plot for mdif and paste it in. 
+		5. Create a numeric variable pnc5 that is a 1 if month prenatal care began is less than or equal to 5, 0 if later, and NA if missing. 
+		6. Create a factor variable pnc5_f based on pnc5 with labels "No Early PNC" and "Early PNC" 
+		7. Check your result with a bivariate table of pnc5_f and mdif (useNA=”always” will be relevant here). Paste it in here. 
+	2. Preterm Birth 
+		1. Create a histogram of wksgest and paste it here. 
+		2. Create an integer variable called preterm that is a 1 if wksgest is at least 20 weeks but less than 37 weeks, 0 if at least 37 weeks, and missing if missing. 
+		3. Create a factor variable preterm_f based on the preterm integer variable following the same coding as preterm, labeling the right levels as “term” and “preterm.” 
+		4. **Optional Challenge**: Create a factor variable preterm_f in one step, based on the original wksgest integer variable following the same coding as preterm using the cut() function, labeling the right levels as “term” and “preterm.” 
+	3. Plurality 
+		1.	We’ll be using plurality as a selection critieria. Create a table of plur to confirm it is coded properly.
+	4. Maternal Age 
+		1. 	Create a table of mage, and paste it here. 
+		2. What does mage =99 mean, specifically? See the code book. 
+		3. Assign mage =99 to R’s “missing” value. 
+		4. Create and paste in a univariate graph of mage. Consider using boxplot, density plot [hint: `plot(density(x))`] or histogram. 
+		5. Create a centered mage_centered variable in the dataset, equal to the mage minus the mean of mage. Report its fivenumber summary. 
+	5. Cigarette Use 
+		1. Recode the existing cigdur character variable to a new integer variable smoke so that it is coded as 1 for “Y”, 0 for “N”, and missing otherwise.  
+		2. Convert that integer variable smoke to a factor variable smoker_f with levels “Smoker” and “Non-smoker” 
+		3. Make sure your recoding is right by creating a two-way frequency table between the new variable smoke_f (row variable) and the old variable cigdur (column variable). Paste the output here. 
+	6. Date of Birth 
+		1. Find the `lubridate` package’s [github page](https://github.com/tidyverse/lubridate) and skim it 
+		2. Run `?lubridate` and `vignette(“lubridate”)` to explore the package 
+		3. Load the lubridate (or tidyverse!) package at the top of your script (suggestion: a chunk called “packages & data”) 
+		4. Use helpful functions like `lubridate::ymd()` to convert the dob string variable into a date-typed version called dob_d 
+	7. Sex 
+		1. Using skills from the previous questions, code the factor variable sex_f as “M”, “F”, or missing. Use a table to confirm your recoding. 
+	8. Maternal Race / Ethnicity (_please see the homework for an important note/discussion on race-ethnicity!_)  
+		1. Use a bivariate table() to investigate the covariate relationships of maternal race and ethnicity. 
+		2. Create a raceeth_f factor variable from mrace and methnic for these (limited!) categories: White non-Hispanic, White Hispanic, African American (any methnic value), American Indian or Alaska Native (any methnic value) and Other (including unknown or any missing values).  
+		3. Create one or more tables (note table(a,b,c) is valid syntax) to confirm coding of the race-ethnicity variable
+
+<div class="fold o"> 
+```{r, echo=T, warning=F, message=F}
+## (HW1.Q5) 
+### A. Prenatal Care (Exposure) 
+#### i
+table(births$mdif, useNA = "always") 
+
+#### ii
+# See data dictionary, but 88 means no early prenatal care and 99 means missing
+
+#### iii
+births$mdif[births$mdif==99] <- NA 
+
+#### iv
+boxplot(births$mdif[births$mdif != 88], main="Month Prenatal Care Began, \n Excluding Unkowns and No Prenatal Care")
+
+#### v
+births$pnc5 <- ifelse(births$mdif <= 5, 1, 0) 
+
+#### vi
+births$pnc5_f <- factor(births$pnc5, levels=c(0,1), labels=c("No Early PNC", "Early PNC"))
+
+#### vii
+table(births$mdif, births$pnc5_f, useNA = "always")
+
+
+# (HW1.Q5 continued) 
+### B. Preterm Birth (Outcome) 
+#### i
+hist(births$wksgest) #quick look
+#### ii
+births$preterm <- ifelse(births$wksgest >= 20 &births$wksgest < 37, 1,
+                                     ifelse(births$wksgest >= 37 & births$wksgest < 99, 0, NA)
+                        )
+
+#### iii
+births$preterm_f <- factor(births$preterm, levels=c(0,1), labels=c("term", "preterm"))
+
+#### iv
+births$preterm_f <- cut(births$wksgest, breaks = c(0,19,36,99), labels =  c("too young", "preterm", "term")) #should be no births too young at this point
+
+# (HW1.Q5 continued) 
+### C. Plurality (covariate) 
+#### i
+table(births$plur, useNA = "always") # looks fine, no 9 values for unknown
+
+# (HW1.Q5 continued) 
+### D. Maternal Age (covariate) 
+#### i
+table(births$mage, useNA = "always") 
+
+#### ii
+# See data dictionary, but 99 means misssing
+
+#### iii
+births$mage[births$mage==99] <- NA 
+
+#### iv
+par(mfrow=c(1,2))
+boxplot(births$mage, main="Boxplot of Maternal Age Distribution")
+plot(density(births$mage[!is.na(births$mage)]), main="Density Plot of Maternal Age Distribution")
+
+#### v
+births$mage_centered <- births$mage - mean(births$mage, na.rm = T)
+hist(births$mage) # looks to be expected
+summary(births$mage)
+
+# (HW1.Q5 continued) 
+### E. Cigarette Use (covariate) 
+#### i
+table(births$cigdur, useNA = "always") # check to see what values are in cigdur
+births$cigdur <- ifelse(births$cigdur == "Y", 1, 
+                     ifelse(births$cigdur == "N", 0, NA)) # NA for when case is U - i.e. unknown
+
+#### ii
+births$smoker_f <- factor(births$cigdur, levels=c(0,1), labels=c("Non-smoker", "Smoker"))
+
+#### ii
+table(births$cigdur, births$smoker_f, useNA = "always")
+
+
+# (HW1.Q5 continued) 
+### F. Date of Birth (covariate) 
+#### i
+# https://github.com/tidyverse/lubridate
+#### ii
+?lubridate
+vignette("lubridate") 
+
+#### iii
+library(lubridate) # normally this would go at the top of the script under a packages chunk 
+
+#### iv
+births$dob_d <- lubridate::ymd(births$dob)
+
+# (HW1.Q5 continued) 
+### G. Sex (covariate) 
+#### i
+table(births$sex, useNA = "always") # check what initial values are
+births$sex[births$sex==9] <- NA
+births$sex_f <- factor(births$sex, levels=c(1,2), labels=c("Male", "Female"))
+table(births$sex_f, births$sex, useNA="always")
+
+# (HW1.Q5 continued) 
+### G. Maternal Race/Ethnicity (covariate) 
+#### i
+table(births$mrace, births$methnic, useNA = "always") # check what initial values are
+
+## ii
+mergedf <- data.frame(
+  mrace = c(sort(rep(seq(1,4),3))),
+  methnic = as.character(rep(c("Y", "N", "U"), 4)),
+  raceeth_f =factor(c("White Hispanic", "White non-Hispanic", "Other",
+                      rep("African American", 3), 
+                      rep("American Indian or Alaska Native", 3),
+                      rep("Other", 3)
+  )
+  ), 
+  stringsAsFactors = F)
+
+births <- merge(x=births, y=mergedf, by=c("mrace", "methnic"))
+
+#### iii
+table(births$mrace, births$methnic, births$raceeth_f, useNA = "always") # looks good
+# ......................................
+```
+</div>
+
+### Question 6, Epi Packages
+1. Optional Challenges: Useful early Packages 
+	1. Use the tableone:: package to print out a Table 1 of some of your variables of interest 
+	2. Use the mice:: package to print out misingness patterns 
+	3. Use ggplot2:: package with ggpairs() to print a plot matrix of a sample() (for time/size reasons) of your data 
+**Note, the code here provided without the output**
+<div class="fold o"> 
+```{r, echo=T, warning=F, message=F}
+
+# ......................................
+# Optional data exploration (HW1.Q6) ####
+# ......................................
+
+# (HW1.Q6) 
+## A
+# CreateTableOne(vars = c("preterm_f"), strata = c("mage", "pnc5_f", "smoker_f", "sex_f"), data = births)
+
+
+## B
+# mice::md.pattern(births)
+
+
+## C
+# GGally::ggpairs(data = births[1:1000, c("pnc5_f", "preterm_f")], title="Exposure versue Outcome for First 1,000 Obserations")
+
+```
+</div>
+
+
+# Homework 2
+## Overview of Homework 2

@@ -8,7 +8,6 @@ output:
     theme: lumen
     toc: yes
     toc_float: yes
-    toc_depth: 3
     result_folding: hide
 editor_options: 
   chunk_output_type: console
@@ -64,7 +63,9 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # Acknowledgements
-Several instructors have come before us ... **WORDS**
+Several instructors have come before us and have made this work possible, those instructors include: **Nat MacNell**, **Anne**, among others.   
+
+_All thanks to those above, but all errors are own._
 
 # Overview of Homeworks 1-4
 In this series of homeworks, we will analyze the effect of **prenatal care** (exposure) on **preterm birth** (outcome). To estimate this effect we will need to do the basics of any epidemiology project:  
@@ -328,7 +329,7 @@ table(births$cigdur, births$smoker_f, useNA = "always")
 # https://github.com/tidyverse/lubridate
 #### ii
 ?lubridate
-vignette("lubridate") 
+# vignette("lubridate") 
 
 #### iii
 library(lubridate) # normally this would go at the top of the script under a packages chunk 
@@ -375,6 +376,7 @@ table(births$mrace, births$methnic, births$raceeth_f, useNA = "always") # looks 
 	2. Use the mice:: package to print out misingness patterns 
 	3. Use ggplot2:: package with ggpairs() to print a plot matrix of a sample() (for time/size reasons) of your data 
 **Note, the code here provided without the output**
+
 <div class="fold o"> 
 ```{r, echo=T, warning=F, message=F}
 
@@ -384,15 +386,14 @@ table(births$mrace, births$methnic, births$raceeth_f, useNA = "always") # looks 
 
 # (HW1.Q6) 
 ## A
-# CreateTableOne(vars = c("preterm_f"), strata = c("mage", "pnc5_f", "smoker_f", "sex_f"), data = births)
-
+#CreateTableOne(vars = c("preterm_f"), strata = c("mage", "pnc5_f", "smoker_f", "sex_f"), data = births) 
 
 ## B
-# mice::md.pattern(births)
+# mice::md.pattern(births) # the output here is a lot, so I have opted so comment it out for space concerns 
 
 
 ## C
-# GGally::ggpairs(data = births[1:1000, c("pnc5_f", "preterm_f")], title="Exposure versue Outcome for First 1,000 Obserations")
+# GGally::ggpairs(data = births[1:1000, c("pnc5_f", "preterm_f")], title="Exposure versue Outcome for First 1,00 Obserations")
 
 ```
 </div>
@@ -400,3 +401,135 @@ table(births$mrace, births$methnic, births$raceeth_f, useNA = "always") # looks 
 
 # Homework 2
 ## Overview of Homework 2
+The purpose of this homework is to familiarize you with the `apply` family, which are powerful tools that build on vectorization (which converts to speed in R -- Section 1). In addition, we will start to play with dplyr and ggplot (Section 2).
+
+## Overview of Homework 2, Part 1
+### Question 1, Create Dates
+1.  Create useful calculated variables 
+	2. Week number: Create the weeknum variable in the births dataset using the week() function in lubridate and the date of birth (dob) variable in already in. 
+
+<div class="fold o"> 
+```{r, echo=T, warning=F, message=F, results='asis'}
+# ......................................
+# Eligibility criteria & core recoding  (HW2 part 1)
+# ......................................
+# Create many inclusion variables, all of which have to be =1 to be included.
+births$weeknum = week(births$dob_d) #thanks, lubridate! (HW2.1.Q1)
+```
+</div>
+
+### Question 2, Exclusion Criteria
+1. We will now exclude births from the study to simplify and hone our research question. Specifically, we’ll look at births that have data on our variables of interest, had all their weeks of gestation at risk of preterm birth within our study year, are single births, and have no congenital anomalies. In each case we’ll create a variable starting with “incl_” in the dataset so we can keep track of various criteria for study inclusion, with the `variable = 1` meaning it passes that inclusion test, and _0_ meaning it does not pass. We’ll use `apply()` functions where helpful to help reduce our code. The as.numeric() function may be helpful to cast Booleans to _1s_ and _0s_, though `T` and `F` are interpreted intelligently as _1_ and _0_ as well – these instructions are based on _1s_ and _0s_, but you may use `T` and `F` if that makes more sense to you. 
+	1. **Has Gestation**: Create incl_hasgest in the births dataset to be a 1 if the birth has wksgest data, 0 if missing. 
+	2. **Enough gest**: Create incl_enoughgest in the births dataset to be a 1 if the birth has >= 20 weeks of gestation, 0 if otherwise. 
+	3. **Late enough**: Create incl_lateenough to be 1 when wksgest-weeknum <= 19, 0 otherwise.  
+	4. **Early enough**: Create incl_earlyenough to be 1 when weeknum - wksgest <= 7, 0 otherwise. 
+	5. **Singletons**: Create incl_singleton to be 1 when plur is 1, 0 otherwise. 
+
+<div class="fold o"> 
+```{r, echo=T, warning=F, message=F, results='asis'}
+
+# a. Has gestation data (weeks), and at least 20 weeks gestation pre-birth (weeks >= 20)
+births$incl_hasgest = as.numeric(!is.na(births$wksgest)) #(HW2.1.Q2a)
+births$incl_enoughgest = as.numeric(births$wksgest >= 20) #(HW2.1.Q2b)
+# b. Less than 20 weeks gestation before Jan 1 of year (LMP > Aug 20), or weeks-weeknum>=19, w/ weeknum=1 for Jan 1-7
+births$incl_lateenough = as.numeric(births$wksgest - births$weeknum <= 19) #(HW2.1.Q2c)
+# c. Start date of gestation was 45 (max gest in'11) w prior to Jan 1 of next year, so all births are observed in year
+births$incl_earlyenough = as.numeric(births$weeknum - births$wksgest <=7) #(HW2.1.Q2d)
+# d. singletons only
+births$incl_singleton = as.numeric(births$plur == 1) #(HW2.Q2e)
+
+
+```
+</div>
+
+### Question 3, Create congenital anomaly variable using `apply()` 
+1. Create congenital anomaly variable using apply() 
+There is no single “has any congenital anomaly” variable, so we’ll need to create one.  Some hints: Use the MARGIN parameter of apply() to decide between rows and columns (we’ll want rows). The dataframe to pass to apply() will need to be subsetted to just the congen_anom variables. It may be easiest to send that dataframe into apply() as all Booleans (e.g. df[subsetting-goes-here] ==”N”).
+	1. Create name vector: Create a variable congen_anom (outside births) to be equal to a vector of the names of congenital anomaly variables. You would normally refer to the meta data, but to save you typing, here are those variables in an array: 
+`c("anen","mnsb","cchd", "cdh", "omph","gast", "limb", "cl","cp","dowt","cdit", "hypo")`
+	2. Check all anomalies at once: Use `apply()` with the `all()` function on the congenital anomaly columns of births to return a _1_ if all congenital anomaly variables are “N”, _0_ otherwise and assign it to variable incl_noanomalies. 
+
+
+<div class="fold o"> 
+```{r, echo=T, warning=F, message=F, results='asis'}
+
+# e. no congential anomalies - Let's use apply for efficiency
+congen_anom = c("anen","mnsb","cchd", "cdh", "omph","gast", "limb", "cl","cp","dowt","cdit", "hypo") #(HW2.1.Q3a)
+  # below is just a useful aside to check that there is No "U" (i.e. none missing) before running the code to make the new variable
+  births$incl_hasanomdata = as.numeric(apply(births[,congen_anom]!="U", FUN=all, 1)) #All not missing = not any missing
+births$incl_noanomalies = as.numeric(apply(births[,congen_anom]=="N", FUN=all, 1)) #All not present #(HW2.1.Q3b)
+
+
+```
+</div>
+
+
+### Question 4, Finish the inclusion criteria 
+1. Finish the inclusion criteria 
+	1. Save your dataset, before we subset it, as old_births. If you need to in the future, you can `birth=old_births` to reset your work, since this dataset is relatively small (sometimes I’ll save these sorts of save points in a comment... ).  
+	2. Explore the `grepl` function. To take advantage of our `incl_` naming convention, we’ll use a text search function, `grepl`. As an example, try (and note the misspelling of banana) : `grepl("a", c("banana", "peach", "ornge"))` 
+	3. (Optional Challenge): In one line of R, report the number that failed each inclusion test using `apply()` and sum over the column margins instead of rows. The `grepl` function may be useful to subset births to the inclusion criteria of interest. 
+	4. Create overall inclusion variable: Create a variable in our dataset include_allpass that represents a _1_ if all inclusion criteria are passed. Using the `grepl()` function to find just the variables with incl_ in their name, subset births to be just those that have a _1_ in every incl_ variable. This is similar to what’s done in _3c_, above, but looks at rows instead of columns.  
+	5. Subset to create a new births dataset on the outcome of that apply function, just including births that pass the inclusion criteria.  
+	6. Summarize exclusion: Report the number of births before and after the inclusion criteria using `nrow()` or `dim()`. 
+
+<div class="fold o"> 
+```{r, echo=T, warning=F, message=F, results='asis'}
+
+
+old_births <- births #(HW2.1.Q4a)
+
+# Below is the example grepl (HW2.1.Q4b)
+grepl("a", c("banana", "peach", "ornge")) 
+
+eligibility_drops = nrow(births) - apply(births[,grepl("incl_", names(births))], FUN=sum, MARGIN = 2, na.rm=T) #(HW2.1.Q4c optional)
+eligibility_drops #(HW2.1.Q4c optional)
+
+births$include_allpass = apply(births[, grepl("incl_", names(births))], FUN=all, MARGIN = 1) #(HW2.1.Q4d indicator for the inclusion criteria yes/no)
+
+births = births[births$include_allpass, ] #(HW2.1.Q4e now apply the inclusion criteria to subset your births data set)
+  # to see what warnings are being thrown you can type warnings() -- below:  
+  warnings() # Just letting me know I'm casting those 1s as TRUEs. That's ok.
+
+dim(old_births) #(HW2.1.Q4f)
+dim(births) #(HW2.1.Q4f)
+
+
+```
+</div>
+
+
+### Question 5, Optional Challenge
+1. Optional Challenge: Create an “any exclusion” variable in oldbirths (before we subset it). Use tableone::CreateTableOne grouped by that variable to describe the difference in the exclusion and inclusion cohorts. 
+
+```{r, echo=T, warning=F, message=F, results='asis'}
+
+#(HW2.1.Q5 Optional Challenge)
+# Results of exclusion
+cat("Leaving eligibility checks with n =", formatC(nrow(births), big.mark = ","), 
+    "births of original", formatC(nrow(old_births), big.mark = ",")) #(HW2.1.Q4d)
+names(births)
+vars_of_interest = c("pnc5_f", "preterm_f", "smoker_f", "wksgest", "sex", "meduc", "raceeth_f", "weeknum", "include_allpass")
+tableone::CreateTableOne(data=births[, vars_of_interest]) #(HW2.1.Q5)
+  # let's look at who was included and excluded in our database 
+  # This is the same as question 4 but now I am running it on the      birth dataset that has not been subsetted (i.e. we could have      already saved this variable earlier on or we can easily            recreate it)
+old_births$include_allpass <- apply(old_births[, grepl("incl_", names(old_births))], FUN=all, MARGIN = 1)
+
+tableone::CreateTableOne(data=old_births[, vars_of_interest], strata="include_allpass")
+# ......................................
+# NOTES: Finishes with 62,370 of 122,513 
+# ......................................
+
+```
+</div>
+
+
+
+
+## Overview of Homework 2, Part 2
+
+
+
+
+

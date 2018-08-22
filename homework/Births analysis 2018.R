@@ -256,7 +256,7 @@ cat("Leaving eligibility checks with n =", formatC(nrow(births), big.mark = ",")
 names(births)
 vars_of_interest = c("pnc5_f", "preterm_f", "smoker_f", "wksgest", "sex", "meduc", "raceeth_f", "weeknum", "include_allpass")
 tableone::CreateTableOne(data=births[, vars_of_interest]) #(HW2.1.Q5)
-tableone::CreateTableOne(data=births[, vars_of_interest], strata="include_allpass")
+tableone::CreateTableOne(data=old_births[, vars_of_interest], strata="include_allpass")
 # ......................................
 # NOTES: Finishes with 62,370 of 122,513 
 # ......................................
@@ -325,9 +325,6 @@ ggplot() +
   theme_bw()
 
 ## end of homework 2
-
-
-
 
 
 

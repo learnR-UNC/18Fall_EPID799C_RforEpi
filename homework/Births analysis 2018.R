@@ -261,12 +261,16 @@ tableone::CreateTableOne(data=old_births[, vars_of_interest], strata="include_al
 # NOTES: Finishes with 62,370 of 122,513 
 # ......................................
 
+## end of homework 2
+  
+
+
 
 # ......................................
-# Explore data (HW2 part 2)
+# Explore data (HW3 part 1)
 # ......................................
-#(HW2.2.Q6A) Graph weeks
-npop = formatC(sum(!is.na(births$wksgest)), big.mark=',') #(HW2.2.Q6a)
+#(HW3.1.Q1A) Graph weeks
+npop = formatC(sum(!is.na(births$wksgest)), big.mark=',') #(HW3.1.Q1a)
 ggplot(data=births, aes(x=wksgest, y=..prop..))+geom_bar() + #Does what you need, as does geom_histogram()
   labs(title="Figure 1: Proportional distribution of gestational age at birth", 
        subtitle=paste0("From ", npop, " births in NC in 2012 from the NC SCHS, posted at Odum Institute"), 
@@ -275,17 +279,17 @@ ggplot(data=births, aes(x=wksgest, y=..prop..))+geom_bar() + #Does what you need
 
 
 
-  #A2.1 : Working with weeknum. - should double check this. Just used %V above.
+  #(HW3.1.Q1a): Working with weeknum. - should double check this. Just used %V above.
   hist(births$weeknum, breaks = min(births$weeknum):max(births$weeknum)) # Looks weird
 
-#(HW2.2.Q6B) : Graph weeknum 
+#(HW3.1.Q1B) : Graph weeknum 
 ggplot(births, aes(x=weeknum, y=..prop..)) + geom_bar() +
   labs(title="Throwaway: Investigating Weeknum", 
        subtitle="Note to self : Weeknum needs some work, doesn't quite match SAS", 
        x="Week number of birth", y="Proportion of population") +
   theme_bw()
 
-#(HW2.Q6c) weeks vs. weeknum 
+#(HW3.1.Q1C) weeks vs. weeknum 
 ggplot(births, aes(x=wksgest, y=weeknum)) + 
   geom_jitter(width=1, height=1, pch=".", alpha=0.3)+
   labs(title="Throwaway: week vs. weeknum", 
@@ -294,7 +298,7 @@ ggplot(births, aes(x=wksgest, y=weeknum)) +
   theme_bw()
 
 
-#(HW2.2.Q6D)
+#(HW3.1.Q1D)
 # Note here that you can ggplot objects that are "appendable" 
 # which is to say you can add on new features by adding on LAYERS 
 plotObj <- ggplot(births, aes(x=wksgest, y=weeknum)) + 
@@ -313,7 +317,7 @@ plotObj + geom_bin2d(binwidth=1, alpha=0.8)
 
 
 
-#(HW2.2.Q6D)
+#(HW3.1.Q1E)
 require("ggridges")
 ggplot() + 
   geom_density_ridges_gradient(data=births, aes(x=mage, y=factor(cut(wksgest, 10)), fill=..x..)) + 
@@ -324,24 +328,20 @@ ggplot() +
   ylab("Weeks of Gestations factorized") + xlab("mage") + 
   theme_bw()
 
-## end of homework 2
-
-
-
 
 
 
 # ......................................
-# Functional Form of maternal age w/ dplyr and ggplot2 #(HW3 part 1)
+# Functional Form of maternal age w/ dplyr and ggplot2 #(HW3 part 2)
 # ......................................
 
-mage_df = births %>% group_by(mage) %>% #(HW3.1.1) setup 
+mage_df = births %>% group_by(mage) %>% #(HW3.2.2) setup 
   summarize(n=n(), 
             pct_earlyPNC = mean(pnc5, na.rm=T),
             pct_preterm = mean(preterm, na.rm=T))
-head(mage_df) #(HW3.1) answer 
+head(mage_df) #(HW3.2.2) answer 
 
-#(HW3.1.2A)  
+#(HW3.2.3A)  
 ggplot(mage_df, aes(mage, pct_preterm))+ 
   geom_point(aes(size=n))+
   geom_smooth(aes(weight=n), color="blue", method="loess")+
@@ -350,7 +350,7 @@ ggplot(mage_df, aes(mage, pct_preterm))+
        subtitle="Investigating function form of maternal age", 
        caption="Note for future glms: Seems quadratic. Blue is loess, red is square linear.")
 
-#(HW3.1.2B) Optional Challenge  
+#(HW3.2.3B)  Optional Challenge  
 ggplot(mage_df, aes(mage, pct_preterm)) + 
   geom_point(aes(size=n)) +
   geom_smooth(aes(weight=n), color="blue") +
@@ -367,37 +367,37 @@ ggplot(mage_df, aes(mage, pct_preterm)) +
 
 
 # ......................................
-# County specific stories w/ dplyr and ggplot2 #(HW3 part 2)
+# County specific stories w/ dplyr and ggplot2 #(HW3 part 3)
 # ......................................
-#(HW3.2.3A) 
+#(HW3.3.4A) 
 format_helper = read.csv("data/birth-format-helper-2012.csv", stringsAsFactors = F)
-#(HW3.2.3A.i) 
+#(HW3.3.4A.i) 
 county_data = format_helper[format_helper$variable == "cores",] #base R way
-#(HW3.2.3A.ii) 
+#(HW3.3.4A.ii) 
 names(county_data) = c("variable", "cores", "county_name", "FIPS")
-#(HW3.2.3A.iii) 
+#(HW3.3.4A.iii) 
 county_data$var = NULL #drop in base R. There are other ways...
-#(HW3.2.3A.iv) 
+#(HW3.3.4A.iv) 
 county_data$cores = as.numeric(county_data$cores)
 str(county_data$cores)
 
-#(HW3.2.3B) same results as above but now using "tidy" methods and more human readable 
+#(HW3.3.4B) same results as above but now using "tidy" methods and more human readable 
 county_data = format_helper %>% 
   filter(variable == "cores") %>%
   rename(cores=code, county_name=recode, FIPS=helper) %>% 
   select(-variable) %>%
   mutate(cores = as.numeric(cores))
 
-#(HW3.2.3C)
+#(HW3.3.4C)
 # Load tier data 
 # https://www.nccommerce.com/research-publications/incentive-reports/county-tier-designations 
 county_tiers = read.csv("data/county_tiers.csv", stringsAsFactors = F) # shell.exec("county_tiers.csv")
-#(HW3.2.3C.i)
+#(HW3.3.4C.i)
 str(county_tiers$econ_tier)
-#(HW3.2.3C.ii)
+#(HW3.3.4C.ii)
 county_tiers$econ_tier = ordered(county_tiers$econ_tier)
 
-#(HW3.2.3D)
+#(HW3.3.4D)
 county_df = births %>% group_by(cores) %>%
   summarize(n=n(), 
             pct_earlyPNC = mean(pnc5, na.rm=T),
@@ -407,29 +407,29 @@ county_df = births %>% group_by(cores) %>%
 head(county_df) #(HW3.2.3D) output
 
 
-#(HW3.2.3E) write this out to your local directory
+#(HW3.3.4E) write this out to your local directory
 write.csv(x=county_df, "data/county_birth_summary.csv", row.names = F, quote = F)
 
 
-#(HW3.2.4)
+#(HW3.3.5)
 # Create a plot with ggplot
 plotObj <- ggplot(county_df, aes(x=pct_earlyPNC, y=pct_preterm, color=econ_tier))+
   geom_point(aes(size=n))+geom_text(aes(label=county_name), nudge_y=.01, alpha=0.5)+
   geom_smooth(se=F)
 plot(plotObj)
-#(HW3.2.4a)
+#(HW3.3.5a)
 plotly::ggplotly(plotObj)
 
 
-#(HW3.2.5A)
+#(HW3.3.6A)
 county_name_ord = factor(county_df$county_name, county_df$county_name[order(county_df$pct_earlyPNC)], ordered=T)
 
-#(HW3.2.5B)
+#(HW3.3.6B)
 county_df <- county_df %>% 
   mutate(county_name_ord = county_name_ord) %>%
   gather(key=variable, value=value, n, pct_earlyPNC, pct_preterm) %>% 
   head()
-#(HW3.2.5C)
+#(HW3.3.6C)
 county_df %>% 
 ggplot(aes(county_name_ord, value, fill=econ_tier)) + 
   geom_col() + 

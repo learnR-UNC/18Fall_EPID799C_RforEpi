@@ -116,7 +116,8 @@ The purpose of this homework is to introduce you to the under-the-hood machinery
 # install.packages("tableone")
 library(tidyverse) # for ggplot, dplyr in HW1-4 (<- example of a post-line code comment, HW1.Q1c)
 library(lubridate) # for dates in HW2
-library(tableone) # used in HW2
+devtools::install_github("kaz-yos/tableone") # used in HW2, need for github for kableone functipn from PR #32 (https://github.com/kaz-yos/tableone/pull/32)
+library(tableone)
 # Set directories. 
 data_dir = paste0(getwd(), "/data")
 output_dir = paste0(getwd(), "/data")
@@ -303,6 +304,7 @@ births$mage[births$mage==99] <- NA
 par(mfrow=c(1,2))
 boxplot(births$mage, main="Boxplot of Maternal Age Distribution")
 plot(density(births$mage[!is.na(births$mage)]), main="Density Plot of Maternal Age Distribution")
+dev.off() # turning back to default
 
 #### v
 births$mage_centered <- births$mage - mean(births$mage, na.rm = T)
@@ -401,9 +403,8 @@ table(births$mrace, births$methnic, births$raceeth_f, useNA = "always") # looks 
 
 # Homework 2
 ## Overview of Homework 2
-The purpose of this homework is to familiarize you with the `apply` family, which are powerful tools that build on vectorization (which converts to speed in R -- Section 1). In addition, we will start to play with dplyr and ggplot (Section 2).
+The purpose of this homework is to familiarize you with the `apply` family, which are powerful tools that build on vectorization (which converts to speed in R).
 
-## Overview of Homework 2, Part 1
 ### Question 1, Create Dates
 1.  Create useful calculated variables 
 	2. Week number: Create the weeknum variable in the births dataset using the week() function in lubridate and the date of birth (dob) variable in already in. 
@@ -509,14 +510,16 @@ dim(births) #(HW2.1.Q4f)
 # Results of exclusion
 cat("Leaving eligibility checks with n =", formatC(nrow(births), big.mark = ","), 
     "births of original", formatC(nrow(old_births), big.mark = ",")) #(HW2.1.Q4d)
-names(births)
+# names(births)
+
 vars_of_interest = c("pnc5_f", "preterm_f", "smoker_f", "wksgest", "sex", "meduc", "raceeth_f", "weeknum", "include_allpass")
-tableone::CreateTableOne(data=births[, vars_of_interest]) #(HW2.1.Q5)
+tableone::kableone(tableone::CreateTableOne(data=births[, vars_of_interest])) #(HW2.1.Q5)
   # let's look at who was included and excluded in our database 
   # This is the same as question 4 but now I am running it on the      birth dataset that has not been subsetted (i.e. we could have      already saved this variable earlier on or we can easily            recreate it)
 old_births$include_allpass <- apply(old_births[, grepl("incl_", names(old_births))], FUN=all, MARGIN = 1)
 
-tableone::CreateTableOne(data=old_births[, vars_of_interest], strata="include_allpass")
+tableone::kableone(tableone::CreateTableOne(data=old_births[, vars_of_interest], strata="include_allpass"))
+
 # ......................................
 # NOTES: Finishes with 62,370 of 122,513 
 # ......................................
@@ -527,9 +530,146 @@ tableone::CreateTableOne(data=old_births[, vars_of_interest], strata="include_al
 
 
 
-## Overview of Homework 2, Part 2
+## Overview of Homework 3
+In this section of the homework we will start with the `tidyverse`, and focus on the `dplyr` and `ggplot2` packages. As discussed in class, there are powerful packages that make cleaning, analyzing, and graphing data "easy" (or at least tidy!).  
+
+## Homework 3, Part 1
+### Question 4, Finish the inclusion criteria 
+#### Question 4A-C
+1. Mimic Graphs: Mimic these graphs as best you can using ggplot2 and paste them in below each graph. If they aren’t exact, that’s fine! Until we know how to use dplyr thoroughly to create summary data, you’ll likely need to use the ..prop and ..count hidden variables (as covered in ggplot2 class) to create these graphs. These are tough concepts; take your time and don’t be afraid to help each other!   
+	1. Figure 1A (distribution of gestational age)
+	2. Figure 1B (weeknum distribution)
+	3. Figure 1C (week vs. weeknum)
+```{r, echo=T, warning=F, message=F, results='asis', fig.width=11, fig.height=8}
+#(HW3.1.Q1A) Graph weeks
+npop = formatC(sum(!is.na(births$wksgest)), big.mark=',') #(HW3.1.Q1a)
+fig1a <- ggplot(data=births, aes(x=wksgest, y=..prop..))+geom_bar() + #Does what you need, as does geom_histogram()
+  labs(title="Figure 1: Proportional distribution of gestational age at birth", 
+       subtitle=paste0("From ", npop, " births in NC in 2012 from the NC SCHS, \n posted at Odum Institute"), 
+       x="Weeks of gestation", y="Proportion of population") + 
+  theme_bw()
+
+
+  #(HW3.1.Q1a): Working with weeknum. - should double check this. Just used %V above.
+#  hist(births$weeknum, breaks = min(births$weeknum):max(births$weeknum)) # Looks weird
 
 
 
+#(HW3.1.Q1B) : Graph weeknum 
+fig1b <- ggplot(births, aes(x=weeknum, y=..prop..)) + geom_bar() +
+  labs(title="Throwaway: Investigating Weeknum", 
+       subtitle="Note to self : Weeknum needs some work, \n doesn't quite match SAS", 
+       x="Week number of birth", y="Proportion of population") +
+  theme_bw()
 
+
+#(HW3.1.Q1C) weeks vs. weeknum 
+fig1c <- ggplot(births, aes(x=wksgest, y=weeknum)) + 
+  geom_jitter(width=1, height=1, pch=".", alpha=0.3)+
+  labs(title="Throwaway: week vs. weeknum", 
+       subtitle="Note to self: Does this match what we expect given the inclusion criteria?",
+       x="weeks of gestation", y="week number of birth in year")+
+  theme_bw()
+
+plot(gridExtra::arrangeGrob(fig1a, fig1b, fig1c, layout_matrix = rbind(c(1,2), c(3,3))))
+
+
+```
+
+#### Question 4D
+	4.	Change a graph from questions a, b or c using ggplot’s “+” syntax to add a layer. You can do anything you like, but as a suggestion, try taking a saved plot c and adding geom_bin2d(binwidth=1, alpha=0.8).  
+ 
+
+```{r, echo=T, warning=F, message=F, results='asis'}
+
+#(HW3.1.Q1D)
+# Note here that you can ggplot objects that are "appendable" 
+# which is to say you can add on new features by adding on LAYERS 
+plotObj <- ggplot(births, aes(x=wksgest, y=weeknum)) + 
+  geom_jitter(width=1, height=1, pch=".", alpha=0.3)+
+  labs(title="Throwaway: week vs. weeknum", 
+       subtitle="Note to self: Does this match what we expect given the inclusion criteria?", 
+       x="weeks of gestation", y="week number of birth in year")+
+  theme_bw()
+
+plot(plotObj)
+
+## append new feature
+plotObj + geom_bin2d(binwidth=1, alpha=0.8) + labs(caption = "Look we appended a layer here!")
+
+```
+
+#### Question 4E
+	5. Create your own! Create and submit any ggplot2 graphic you like built from the births dataset and using our variables of interest. Use at least two geometry layers, a title, a subtitle, and a caption that describes your interpretation of the punchline of your graph. 
+Note that we do not yet have tools to dramatically transform the dataframe (one more week!), so you may or may not need to transform your data in order to make your planned graph.   
+
+
+```{r, echo=T, warning=F, message=F, results='asis'}
+#install.packages("ggridges")
+library("ggridges")
+ggplot() + 
+  geom_density_ridges_gradient(data=births, aes(x=mage, y=factor(cut(wksgest, 10)), fill=..x..)) + 
+  scale_fill_gradientn(colors=c("#fc8d59", "#ffffbf", "#91cf60")) + 
+  facet_grid(meduc~raceeth_f) +
+  ggtitle("Distribution of Weeks Gestation by Birth Outcome") + 
+  labs(subtitle="This is the continuous variable we dichotomized") + 
+  ylab("Weeks of Gestations factorized") + xlab("mage") + 
+  theme_bw()
+
+```
+
+## Homework 3, Part 2
+This section of the homework will focus a bit more on "piping" with `magrittr` and using `dplyr`. 
+
+### Question 2, Summary Table for mage
+Create a summary table for maternal age: Using dplyr, create a summary table for mage from the births dataset whose head looks like below:   
+**Investigate why maternal age of 54 gives a NaN for the newly created `pct_earlyPNC` variable (hint -- what would the mean of all missing be?).**
+```{r, echo=T, warning=F, message=F, results='asis'}
+# ......................................
+# Functional Form of maternal age w/ dplyr and ggplot2 #(HW3 part 2)
+# ......................................
+
+mage_df = births %>% group_by(mage) %>% #(HW3.2.2) setup 
+  summarize(n=n(), 
+            pct_earlyPNC = mean(pnc5, na.rm=T),
+            pct_preterm = mean(preterm, na.rm=T))
+knitr::kable(mage_df) #(HW3.2.2) answer 
+
+
+```
+
+### Question 3, Explore functional form
+1.	Create a ggplot similar to the below plot that demonstrates the functional form of maternal age to the risk of preterm birth. Note that the “weight” aesthetic will be important so that the larger center bins appropriately pull most of the quick loess model.    
+2.	**Optional Challenge**: Consider the “on the fly” linear square term model as a functional form – if you want to attempt it, check the help page for geom_smooth, looking at the method and formula parameters. Also check out [UCLA's IDRE](https://stats.idre.ucla.edu/r/faq/how-can-i-explore-different-smooths-in-ggplot2/) help pages. 
+
+```{r, echo=T, warning=F, message=F, results='asis', fig.width=11, fig.height=8}
+
+#(HW3.2.3A)  
+fig2a <- ggplot(mage_df, aes(mage, pct_preterm))+ 
+  geom_point(aes(size=n))+
+  geom_smooth(aes(weight=n), color="blue", method="loess")+
+  labs(title="% Preterm vs. Maternal Age", 
+       x="maternal age", y="% preterm", 
+       subtitle="Investigating function form of maternal age", 
+       caption="Note for future glms: Seems quadratic. Blue is loess, red is square linear.")
+
+#(HW3.2.3B)  Optional Challenge  
+fig2b <- ggplot(mage_df, aes(mage, pct_preterm)) + 
+  geom_point(aes(size=n)) +
+  geom_smooth(aes(weight=n), color="blue") +
+  geom_smooth(aes(weight=n), method="lm", formula=y ~ poly(x, 2), color="red", lty=2) + # this is the square error term
+  labs(title="% Preterm vs. Maternal Age", 
+       x="maternal age", y="% preterm", 
+       subtitle="Investigating function form of maternal age", 
+       caption="Note for future glms: Seems quadratic. Blue is loess, red is square linear.")
+
+
+
+plot(gridExtra::arrangeGrob(fig2a, fig2b))
+
+
+
+```
+
+## Homework 3, Part 3
 

@@ -668,7 +668,12 @@ fig2b <- ggplot(mage_df, aes(mage, pct_preterm)) +
 plot(gridExtra::arrangeGrob(fig2a, fig2b))
 
 
+```
 
+```{r, echo=F}
+# here for internal consistency is the dataset after HW2
+
+saveRDS(object = births, file = "data/births_afterHW2.rds")
 ```
 
 ## Homework 3, Part 3

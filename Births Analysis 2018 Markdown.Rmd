@@ -65,7 +65,7 @@ knitr::opts_chunk$set(echo = TRUE)
 # Acknowledgements
 Several instructors have come before us and have made this work possible, those instructors include: **Nat MacNell**, **Anne**, among others.   
 
-_All thanks to those above, but all errors are own._
+_All thanks to those above, but all errors are our own._
 
 # Overview of Homeworks 1-4
 In this series of homeworks, we will analyze the effect of **prenatal care** (exposure) on **preterm birth** (outcome). To estimate this effect we will need to do the basics of any epidemiology project:  
@@ -504,6 +504,7 @@ dim(births) #(HW2.1.Q4f)
 ### Question 5, Optional Challenge
 1. Optional Challenge: Create an “any exclusion” variable in oldbirths (before we subset it). Use tableone::CreateTableOne grouped by that variable to describe the difference in the exclusion and inclusion cohorts. 
 
+<div class="fold o"> 
 ```{r, echo=T, warning=F, message=F, results='asis'}
 
 #(HW2.1.Q5 Optional Challenge)
@@ -527,19 +528,25 @@ tableone::kableone(tableone::CreateTableOne(data=old_births[, vars_of_interest],
 ```
 </div>
 
+```{r, echo=F}
+# here for internal consistency is the dataset after HW2
 
+write_csv(x = births, path = "data/births_afterHW2.csv")
+```
 
-
+# Homework 3
 ## Overview of Homework 3
 In this section of the homework we will start with the `tidyverse`, and focus on the `dplyr` and `ggplot2` packages. As discussed in class, there are powerful packages that make cleaning, analyzing, and graphing data "easy" (or at least tidy!).  
 
 ## Homework 3, Part 1
-### Question 4, Finish the inclusion criteria 
-#### Question 4A-C
+### Question 1, Finish the inclusion criteria 
+#### Question 1A-C
 1. Mimic Graphs: Mimic these graphs as best you can using ggplot2 and paste them in below each graph. If they aren’t exact, that’s fine! Until we know how to use dplyr thoroughly to create summary data, you’ll likely need to use the ..prop and ..count hidden variables (as covered in ggplot2 class) to create these graphs. These are tough concepts; take your time and don’t be afraid to help each other!   
 	1. Figure 1A (distribution of gestational age)
 	2. Figure 1B (weeknum distribution)
 	3. Figure 1C (week vs. weeknum)
+
+<div class="fold o"> 
 ```{r, echo=T, warning=F, message=F, results='asis', fig.width=11, fig.height=8}
 #(HW3.1.Q1A) Graph weeks
 npop = formatC(sum(!is.na(births$wksgest)), big.mark=',') #(HW3.1.Q1a)
@@ -575,11 +582,12 @@ plot(gridExtra::arrangeGrob(fig1a, fig1b, fig1c, layout_matrix = rbind(c(1,2), c
 
 
 ```
+</div>
 
-#### Question 4D
+#### Question 1D
 	4.	Change a graph from questions a, b or c using ggplot’s “+” syntax to add a layer. You can do anything you like, but as a suggestion, try taking a saved plot c and adding geom_bin2d(binwidth=1, alpha=0.8).  
  
-
+<div class="fold o"> 
 ```{r, echo=T, warning=F, message=F, results='asis'}
 
 #(HW3.1.Q1D)
@@ -598,12 +606,12 @@ plot(plotObj)
 plotObj + geom_bin2d(binwidth=1, alpha=0.8) + labs(caption = "Look we appended a layer here!")
 
 ```
+</div>
 
-#### Question 4E
+#### Question 1E
 	5. Create your own! Create and submit any ggplot2 graphic you like built from the births dataset and using our variables of interest. Use at least two geometry layers, a title, a subtitle, and a caption that describes your interpretation of the punchline of your graph. 
-Note that we do not yet have tools to dramatically transform the dataframe (one more week!), so you may or may not need to transform your data in order to make your planned graph.   
 
-
+<div class="fold o"> 
 ```{r, echo=T, warning=F, message=F, results='asis'}
 #install.packages("ggridges")
 library("ggridges")
@@ -617,6 +625,7 @@ ggplot() +
   theme_bw()
 
 ```
+</div>
 
 ## Homework 3, Part 2
 This section of the homework will focus a bit more on "piping" with `magrittr` and using `dplyr`. 
@@ -624,6 +633,8 @@ This section of the homework will focus a bit more on "piping" with `magrittr` a
 ### Question 2, Summary Table for mage
 Create a summary table for maternal age: Using dplyr, create a summary table for mage from the births dataset whose head looks like below:   
 **Investigate why maternal age of 54 gives a NaN for the newly created `pct_earlyPNC` variable (hint -- what would the mean of all missing be?).**
+
+<div class="fold o"> 
 ```{r, echo=T, warning=F, message=F, results='asis'}
 # ......................................
 # Functional Form of maternal age w/ dplyr and ggplot2 #(HW3 part 2)
@@ -632,16 +643,20 @@ Create a summary table for maternal age: Using dplyr, create a summary table for
 mage_df = births %>% group_by(mage) %>% #(HW3.2.2) setup 
   summarize(n=n(), 
             pct_earlyPNC = mean(pnc5, na.rm=T),
-            pct_preterm = mean(preterm, na.rm=T))
-knitr::kable(mage_df) #(HW3.2.2) answer 
+            pct_preterm = mean(preterm, na.rm=T)) %>% 
+  mutate_if(is.numeric, round, 2)
+
+DT::datatable(mage_df) #(HW3.2.2) answer 
 
 
 ```
+</div>
 
 ### Question 3, Explore functional form
 1.	Create a ggplot similar to the below plot that demonstrates the functional form of maternal age to the risk of preterm birth. Note that the “weight” aesthetic will be important so that the larger center bins appropriately pull most of the quick loess model.    
 2.	**Optional Challenge**: Consider the “on the fly” linear square term model as a functional form – if you want to attempt it, check the help page for geom_smooth, looking at the method and formula parameters. Also check out [UCLA's IDRE](https://stats.idre.ucla.edu/r/faq/how-can-i-explore-different-smooths-in-ggplot2/) help pages. 
 
+<div class="fold o"> 
 ```{r, echo=T, warning=F, message=F, results='asis', fig.width=11, fig.height=8}
 
 #(HW3.2.3A)  
@@ -669,12 +684,7 @@ plot(gridExtra::arrangeGrob(fig2a, fig2b))
 
 
 ```
-
-```{r, echo=F}
-# here for internal consistency is the dataset after HW2
-
-saveRDS(object = births, file = "data/births_afterHW2.rds")
-```
+</div>
 
 ## Homework 3, Part 3
 

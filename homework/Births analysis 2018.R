@@ -1,6 +1,6 @@
 # __Start Homework 1 ####
 #............................
-# Births 2012 Analysis for EPID 799C: PNC decrease PT birth? ####
+# Births 2012 Analysis for EPID 799C: PNC decrease PT birth? 
 # Mike Dolan Fliss, August 2017
 # Aim: Does early prenatal care (<month 5) decrease the risk of preterm (<week 37) birth?
 # (This Descriptive header is HW1.Q1a)
@@ -10,7 +10,7 @@
 #............................
 
 #............................
-# Libraries, directories, load data (HW1.Q1f) ####
+# Libraries, directories, load data (HW1.Q1f) 
 #............................
 # NOTE: May need to install these packages in advance on your local machine.
 # install.packages("tableone")
@@ -26,7 +26,7 @@ output_dir = paste0(getwd(), "/data")
 #............................
 
 #............................
-# Read data (HW1.Q2) ####
+# Read data (HW1.Q2) 
 #............................
 births = read.csv("data/births2012.csv", stringsAsFactors = F) # (HW1.Q2a)
 head(births) # (HW1.Q2b)
@@ -40,7 +40,7 @@ names(births) = tolower(names(births)) #drop names to lowercase
 
 
 # ......................................
-# Exploring Data - (HW1Q3 & HW1Q4) ####
+# Exploring Data - (HW1Q3 & HW1Q4) 
 # ......................................
 dim(births) # (HW1.Q3b) 
 summary(births[,c("wksgest", "mdif")]) # (HW1.Q3c) 
@@ -60,7 +60,7 @@ GGally::ggpairs(births_sample) # later I'll demo how to use color here after som
 
 
 # ......................................
-# Recode Variables: Exposure, Outcome & Covariates (HW1.Q5) ####
+# Recode Variables: Exposure, Outcome & Covariates (HW1.Q5) 
 # ......................................
 ## (HW1.Q5) 
 ### A. Prenatal Care (Exposure) 
@@ -187,7 +187,7 @@ table(births$mrace, births$methnic, births$raceeth_f, useNA = "always") # looks 
 # ......................................
 
 # ......................................
-# Optional data exploration (HW1.Q6) ####
+# Optional data exploration (HW1.Q6) 
 # ......................................
 
 # (HW1.Q6) 
@@ -261,10 +261,9 @@ tableone::CreateTableOne(data=old_births[, vars_of_interest], strata="include_al
 # NOTES: Finishes with 62,370 of 122,513 
 # ......................................
 
-## end of homework 2
-  
-
-
+# ......................................
+# __End Homework 2 /  Start Homework 3 ####
+# ......................................
 
 # ......................................
 # Explore data (HW3 part 1)
@@ -439,7 +438,9 @@ ggplot(aes(county_name_ord, value, fill=econ_tier)) +
 
 ## end of homework 3
 
-
+# ......................................
+# __End Homework 3 /  Start Homework 4 ####
+# ......................................
 
 
 
@@ -450,9 +451,18 @@ ggplot(aes(county_name_ord, value, fill=econ_tier)) +
 
 
 # ......................................
+# __PARKINGLOT ####
+# ......................................
+
+
+
+
+
 
 # ......................................
-# D Missing data summary ####
+
+# ......................................
+# D Missing data summary 
 # ......................................
 # See above for CreateTableOne, includeNAs = T
 # install.packages("mice")
@@ -732,7 +742,7 @@ save.image("birth_results.RData")
 
 
 # ......................................
-# Assignments # This section is YUCK!!!! ####
+# Assignments # This section is YUCK!!!! 
 # ......................................
 ### A1
 hist(births$weeks)
@@ -747,8 +757,9 @@ library(epitools) #for epitab()
 #library(epicalc) #Busted for newer R versions
 library(Epi)
 #http://www.inside-r.org/packages/cran/epiR/docs/epi.2by2
+
 findings = function(e,o,s){
-  #Takes t as top=D-, D+; left=E-, E+   #Convert to top=D+, D1; left=E+, E1
+  # Takes t as top=D-, D+; left=E-, E+   #Convert to top=D+, D1; left=E+, E1
   #  t2 = matrix(c(t[2,2], t[2,1], t[1,2], t[1,1]), nrow = 2, byrow = T)
   
   l = unique(s)
@@ -796,7 +807,7 @@ epitab(t)
 
 
 #............................................
-## Clusters & Trees ####
+## Clusters & Trees 
 #............................................
 # kmeans
 to_model = births[,c("pnc5_f", "preterm_f", "smoker", "race_f", "cores", "mage")]
@@ -847,7 +858,7 @@ table(to_model$rpart_pred)
 
 
 #............................................
-## Map makin' ####
+## Map makin' 
 #............................................
 # Add tmap:: library(sp) #for spatial objects
 library(sp)
@@ -977,7 +988,7 @@ plot(nc_counties); plot(nc_counties[orange_neighbors[,1],], col="blue", add=T)
 
 
 #............................................
-# PARKING LOT (useful code without questions)
+# Useful code without questions
 #............................................
 
 # Print some useful Table 1 versions

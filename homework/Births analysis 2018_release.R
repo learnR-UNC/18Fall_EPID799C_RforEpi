@@ -239,7 +239,7 @@ grepl("a", c("banana", "peach", "ornge"))
 eligibility_drops = nrow(births) - apply(births[,grepl("incl_", names(births))], FUN=sum, MARGIN = 2, na.rm=T) #(HW2.1.Q4c optional)
 eligibility_drops #(HW2.1.Q4c optional)
 
-births$include_allpass = apply(births[, grepl("incl_", names(births))], FUN=all, MARGIN = 1) #(HW2.1.Q4d indicator for the inclusion criteria yes/no)
+old_births$include_allpass <- births$include_allpass <- apply(births[, grepl("incl_", names(births))], FUN=all, MARGIN = 1) #(HW2.1.Q4d indicator for the inclusion criteria yes/no)
 
 births = births[births$include_allpass, ] #(HW2.1.Q4e now apply the inclusion criteria to subset your births data set)
   # to see what warnings are being thrown you can type warnings() -- below:  

@@ -282,7 +282,7 @@ births$preterm <- ifelse(births$wksgest >= 20 &births$wksgest < 37, 1,
 births$preterm_f <- factor(births$preterm, levels=c(0,1), labels=c("term", "preterm"))
 
 #### iv
-births$preterm_f <- cut(births$wksgest, breaks = c(0,19,36,99), labels =  c("too young", "preterm", "term")) #should be no births too young at this point
+births$preterm_f <- cut(births$wksgest, breaks = c(036,99), labels =  c("preterm", "term")) #should be no births too young at this point
 
 # (HW1.Q5 continued) 
 ### C. Plurality (covariate) 
@@ -513,7 +513,7 @@ cat("Leaving eligibility checks with n =", formatC(nrow(births), big.mark = ",")
     "births of original", formatC(nrow(old_births), big.mark = ",")) #(HW2.1.Q4d)
 # names(births)
 
-vars_of_interest = c("pnc5_f", "preterm_f", "smoker_f", "wksgest", "sex", "meduc", "raceeth_f", "weeknum", "include_allpass")
+vars_of_interest = c("pnc5_f", "preterm_f", "smoker_f", "wksgest", "sex", "mage", "meduc", "raceeth_f", "weeknum", "include_allpass")
 tableone::kableone(tableone::CreateTableOne(data=births[, vars_of_interest])) #(HW2.1.Q5)
   # let's look at who was included and excluded in our database 
   # This is the same as question 4 but now I am running it on the      birth dataset that has not been subsetted (i.e. we could have      already saved this variable earlier on or we can easily            recreate it)

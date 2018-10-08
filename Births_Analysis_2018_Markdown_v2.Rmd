@@ -688,3 +688,144 @@ plot(gridExtra::arrangeGrob(fig2a, fig2b))
 
 ## Homework 3, Part 3
 
+
+### Question 4, Create a County Summary Table
+Using similar dplyr techniques, we’ll create a county table. In this case we’ll also read in a helper table and do some work with it. 
+
+1. Read in birth format helper 2012.csv. Using base R we’ve learned previously, perform these tasks to convert it to a table called county_data:	1. Figure 1A (distribution of gestational age). 
+	1. i.	Filter to just include rows where variable is cores. 
+	2. ii.	Rename the columns to variable, cores, county_name and FIPS.   
+	3. iii.	Drop the “variable” column. 
+	4. iv.	Covert cores to a number if it is a character (check with str()!). 
+	
+<div class="fold o"> 
+```{r, echo=T, warning=F, message=F, results='asis', fig.width=11, fig.height=8}
+format_helper = read.csv("data/birth-format-helper-2012.csv", stringsAsFactors = F)
+#(HW3.3.4A.i) 
+county_data = format_helper[format_helper$variable == "cores",] #base R way
+#(HW3.3.4A.ii) 
+names(county_data) = c("variable", "cores", "county_name", "FIPS")
+#(HW3.3.4A.iii) 
+county_data$var = NULL #drop in base R. There are other ways...
+#(HW3.3.4A.iv) 
+county_data$cores = as.numeric(county_data$cores)
+# str(county_data$cores)
+
+```
+</div>
+
+2. Using dplyr and pipes, complete the same tasks to create county_data from format_helper in “one line” (even if you indent it). You’ll need the filter(), rename(), select() and mutate() functions.  
+
+<div class="fold o"> 
+```{r, echo=T, warning=F, message=F, results='asis', fig.width=11, fig.height=8}
+#(HW3.3.4B) same results as above but now using "tidy" methods and more human readable 
+county_data = format_helper %>% 
+  filter(variable == "cores") %>%
+  rename(cores=code, county_name=recode, FIPS=helper) %>% 
+  select(-variable) %>%
+  mutate(cores = as.numeric(cores))
+
+```
+</div>
+
+1. Download and read in county_tiers.csv into a county_tiers data.frame from the NC Department of Commerce (https://www.nccommerce.com/research-publications/incentive-reports/county-tier-designations). For convenience, the csv is available on the course website.   
+	2. What type of variable is econ_tier ?  
+	3. Convert econ-tier from integer to a factor using ordered() or factor() with the right parameters.  
+	
+<div class="fold o"> 
+```{r, echo=T, warning=F, message=F, results='asis', fig.width=11, fig.height=8}
+#(HW3.3.4C)
+# Load tier data 
+# https://www.nccommerce.com/research-publications/incentive-reports/county-tier-designations 
+county_tiers = read.csv("data/county_tiers.csv", stringsAsFactors = F) 
+
+#(HW3.3.4C.i)
+# str(county_tiers$econ_tier)
+#(HW3.3.4C.ii)
+county_tiers$econ_tier = ordered(county_tiers$econ_tier)
+
+```
+</div>
+
+4. In one dplyr statement, create county_df data.frame that has its head() like below. You’ll need group_by(), summarize() (with n()!), and two left_join().    
+
+<div class="fold o"> 
+```{r, echo=T, warning=F, message=F}
+#(HW3.3.4D)
+county_df = births %>% group_by(cores) %>%
+  summarize(n=n(), 
+            pct_earlyPNC = mean(pnc5, na.rm=T),
+            pct_preterm = mean(preterm, na.rm=T)) %>%
+  left_join(county_data, by = "cores") %>% 
+  left_join(county_tiers, by = "county_name")
+# head(county_df) #(HW3.2.3D) output
+
+```
+</div>
+
+
+5. Write the data.frame you’ve created to a local file called “county_birth_summary.csv” We may use it later (e.g. to build a map)       
+
+<div class="fold o"> 
+```{r, echo=T, warning=F, message=F, results='hide', fig.width=11, fig.height=8}
+
+#(HW3.3.4E) write this out to your local directory
+write.csv(x=county_df, "data/county_birth_summary.csv", row.names = F, quote = F)
+
+```
+</div>
+
+
+### Question 5, ggplot economic tier
+Create a ggplot (and paste in here) that describes the relationship between the percent of our exposure, outcome, and economic tier of the county. There are many ways to do this!    
+
+1. Challenge: you might consider using plotly package to “hand” explore this interesting summary dataset.   
+
+<div class="fold o"> 
+```{r, echo=T, warning=F, message=F, results='asis', fig.width=11, fig.height=8}
+
+#(HW3.3.5)
+# Create a plot with ggplot
+plotObj <- ggplot(county_df, aes(x=pct_earlyPNC, y=pct_preterm, color=econ_tier))+
+  geom_point(aes(size=n))+geom_text(aes(label=county_name), nudge_y=.01, alpha=0.5)+
+  geom_smooth(se=F)
+plot(plotObj)
+#(HW3.3.5a)
+# plotly::ggplotly(plotObj)
+
+```
+</div>
+
+
+### Question 6, dplyr gather() and ordered factors.
+*Note, this question is just a few lines of R, but definitely a challenge. This is not the best way to map these aesthetics to answer this question; the point of this question is to challenge you to use ordered factors with dplyr:: gather (for later input as facets in ggplot).*
+
+1.	Create an ordered factor county_name_ord that’s ordered by the pct_earlyPNC variable (this factor will specify the plot order below).  
+2.	Use dplyr gather() to create a data.frame that turns our variables n, pct_earlyPNC and pct_preterm into variables where the name is in one column and the value in another. See the head() below to understand the goal of gather for this question.  
+3.	Use this newly created variable to facet your ggplot and produce something similar to below. 
+
+<div class="fold o"> 
+```{r, echo=T, warning=F, message=F, results='asis', fig.width=11, fig.height=8}
+
+#(HW3.3.6A)
+county_name_ord = factor(county_df$county_name, county_df$county_name[order(county_df$pct_earlyPNC)], ordered=T)
+
+#(HW3.3.6B)
+county_df <- county_df %>% 
+  mutate(county_name_ord = county_name_ord) %>%
+  gather(key=variable, value=value, n, pct_earlyPNC, pct_preterm) %>% 
+  head()
+#(HW3.3.6C)
+county_df %>% 
+ggplot(aes(county_name_ord, value, fill=econ_tier)) + 
+  geom_col() + 
+  coord_flip() + 
+  facet_wrap(~variable, scales = "free_x")
+
+```
+</div>
+
+
+# Homework 4
+## Homework 4, Part 1
+

@@ -1,0 +1,737 @@
+---
+title: "Lecture 09"
+subtitle: "Graphics::ggplot I"
+author: "2018 R Teaching Team"
+date: "October 1, 2018"
+output: 
+  beamer_presentation:
+      includes:
+          in_header: misc/header.tex
+  pdf_document:
+    fig_caption: false
+editor_options: 
+  chunk_output_type: console
+widescreen: yes
+---
+```{r, include=FALSE}
+def.chunk.hook  <- knitr::knit_hooks$get("chunk")
+knitr::knit_hooks$set(chunk = function(x, options) {
+  x <- def.chunk.hook(x, options)
+  ifelse(options$size != "normalsize", paste0("\\", options$size,"\n\n", x, "\n\n \\normalsize"), x)
+})
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+# https://stackoverflow.com/questions/26372138/beamer-presentation-rstudio-change-font-size-for-chunk
+# https://stackoverflow.com/questions/25646333/code-chunk-font-size-in-rmarkdown-with-knitr-and-latex
+
+library(tidyverse)
+```
+
+# Acknowledgements 
+1. Mike Fliss & Sara Levintow! 
+2. stackoverflow (particularly user `David` for [lecture styling - link](https://stackoverflow.com/questions/42035981/code-in-columns-in-rmarkdown-presentation)) 
+3. [R Markdown: The Definitive Guide - link](https://bookdown.org/yihui/rmarkdown/) Yihui Xie, J. J. Allaire, Garrett Grolemund
+4. Garrett Grolemund for `gganimate` 
+4. Garrick Aden-Buie for tidyverse animations
+4. Hadley for [R for Data Scientists](http://r4ds.had.co.nz/) and [Advanced R](http://adv-r.had.co.nz/)
+4. R & Rstudio Teams
+
+
+<!-- -------------------------------------- -->
+# This Week   
+1. **Today**: Review the `Tidyverse` and understand the basics of `ggplot2`  
+2. **Wednesday**: Advanced `ggplot2` and `ggplot2` swag  
+
+
+<!-- -------------------------------------- -->
+# This Lecture  
+
+![](/Users/nickbrazeau/Documents/GitHub/18Fall_EPID799C_RforEpi/nfblectures/figures/lecture11_slides/Slide1.png)\
+
+
+<!-- -------------------------------------- -->
+# This Lecture 
+
+![](/Users/nickbrazeau/Documents/GitHub/18Fall_EPID799C_RforEpi/nfblectures/figures/lecture11_slides/Slide2.png)\
+
+
+<!-- -------------------------------------- -->
+# This Lecture  
+
+![](/Users/nickbrazeau/Documents/GitHub/18Fall_EPID799C_RforEpi/nfblectures/figures/lecture11_slides/Slide3.png)\
+
+
+<!-- -------------------------------------- -->
+# Overview of Lecture  
+TIDYVERSE & GGPLOT!!
+
+## Structure
+Contains `R code` in grey boxes and `R output` followed by `##`. 
+
+<!-- -------------------------------------- -->
+# Clarification Point
+The `%>%` function is from the `magrittr` package. From the `magrittr` [website](https://cran.r-project.org/web/packages/magrittr/vignettes/magrittr.html):   
+  
+
+![](/Users/nickbrazeau/Documents/GitHub/18Fall_EPID799C_RforEpi/nfblectures/figures/magrittr.png)\  
+
+
+<!-- -------------------------------------- -->
+# Clarification Point
+This `%>%` function can be used with any other functions, f(x) (not just `tidyverse` functions).  Of note, the "." is a placeholder (more explicit code/can be useful for cases where it is not "obvious" where x should go in f(x)).
+   
+   
+   
+```{r, eval=T, echo=T, warning=F, message=F, size="small"}
+"hi" %>% paste %>% toupper
+"hi" %>% paste(.) %>% toupper(.)
+
+```
+
+<!-- -------------------------------------- -->
+# What does it mean to be "tidy" 
+Thank you, [R for Data Scientists](http://r4ds.had.co.nz/)    
+   
+   
+
+![](/Users/nickbrazeau/Documents/GitHub/18Fall_EPID799C_RforEpi/nfblectures/figures/tidydata.png)\
+
+
+<!-- -------------------------------------- -->
+# What does it mean to be "tidy" 
+To some, this concept may seem "obvious" but is really powerful! For a great read, see Hadley Wickham's paper on tidy data [here](https://www.jstatsoft.org/article/view/v059i10).  
+
+<!-- -------------------------------------- -->
+# Is our Births data set set up in a "tidy" format?  
+
+<!-- -------------------------------------- -->
+# Cool, let's read it in!  
+Note, using `readr::read_csv` here!
+```{r, eval=T, echo=F, warning=F, message=F, comment=F}
+"~/Documents/GitHub/18Fall_EPID799C_RforEpi/data/births_afterHW2.csv"
+births <- readr::read_csv(file="~/Documents/GitHub/18Fall_EPID799C_RforEpi/data/births_afterHW2.csv", 
+                          col_names = T)
+
+births <- births[sample(1:nrow(births), 5e3, replace=FALSE),]
+
+```
+
+```{r, eval=F, echo=T, warning=F, message=F, size="small"}
+
+births <- readr::read_csv(file="<path>", 
+                          col_names = T)
+
+# ?read.csv
+
+
+```
+
+<!-- -------------------------------------- -->
+# Note
+**I have made my dataset much smaller by randomly sampling 5,000 observations (so the presentation can fit on the website). You should not do this for your homework, etc.**
+
+<!-- -------------------------------------- -->
+# What's the big difference?  
+```{r, eval=T, echo=T, warning=F, message=F, size="small"}
+
+births[, c("preterm", "pnc5", "mage")]
+
+
+```
+
+
+<!-- -------------------------------------- -->
+# What is a Tibble  
+
+From [R for Data Scientists](http://r4ds.had.co.nz/): "Tibbles are data frames, but they tweak some older behaviours to make life a little easier. [For example, tibbles will]  never changes the type of the inputs (e.g. it never converts strings to factors!), it never changes the names of variables, and it never creates row names. [Plus it can] have column names that are not valid R variable names, aka **non-syntactic names** [`@Newcolumnname`]"
+
+<!-- -------------------------------------- -->
+# What is a Tibble  
+More from [R for Data Scientists](http://r4ds.had.co.nz/): There are two main differences in the usage of a tibble vs. a classic data.frame: printing and subsetting.  
+  
+**Printing**: "Tibbles have a refined print method that shows only the first 10 rows, and all the columns that fit on screen."   
+
+  
+**Subsetting**: To subset, "[[ can extract by name or position; $ only extracts by name but is a little less typing." Basically, "compared to a data.frame, tibbles are more strict: they never do partial matching, and they will generate a warning if the column you are trying to access does not exist."     
+  
+In subsetting the main difference between data.frames and working "with tibble is the [ function. We don’t use [ much in this book because dplyr::filter() and dplyr::select() allow you to solve the same problems with clearer code (but you will learn a little about it in vector subsetting). With base R data frames, [ sometimes returns a data frame, and sometimes returns a vector. With tibbles, [ always returns another tibble."
+
+
+<!-- -------------------------------------- -->
+# What if our data was not "tidy"?  
+Thank you, [R for Data Scientists](http://r4ds.had.co.nz/)    
+   
+   
+
+![](/Users/nickbrazeau/Documents/GitHub/18Fall_EPID799C_RforEpi/nfblectures/figures/tidydata.png)\
+
+
+<!-- -------------------------------------- -->
+# Spread and Gather 
+Thank you, [Garrick Aden-Buie](https://github.com/gadenbuie)! 
+  
+   
+
+![](/Users/nickbrazeau/Documents/GitHub/18Fall_EPID799C_RforEpi/nfblectures/figures/longwide.png)\  
+
+
+<!-- -------------------------------------- -->
+# Spread and Gather      
+
+[GIF here](https://github.com/gadenbuie/tidy-animated-verbs/blob/master/images/tidyr-spread-gather.gif)   
+  
+Thank you, Garrick Aden-Buie!
+
+<!-- -------------------------------------- -->
+# Spread and Gather in Real Epi Life Example (genetics)    
+
+Let's say that you had a variant call file, which contains loci (i.e. Chromosome, genomic location, reference allele, alternative allele) as rows and sample IDs as columns. In the simplest case, under the sample ID headers are genotypes (either 1 or 0s) that say the person has this SNP or not. Let's take a peak.      
+
+```{r, eval=T, echo=F, warning=F, message=F}
+vcf <- vcfR::read.vcfR(file="~/Documents/GitHub/18Fall_EPID799C_RforEpi/nfblectures/miscdata/play3.vcf", verbose = F)
+vcf <- vcf[vcfR::is.biallelic(vcf)]
+vcf <- vcfR::extract.indels(vcf, return.indels = F)
+vcf <- as_tibble(cbind.data.frame(vcf@fix, vcfR::extract.gt(vcf)))
+vcf <- vcf %>% 
+  mutate_if(is.factor, as.character) %>% 
+  select(-c("ID", "QUAL", "FILTER", "INFO"))
+vcf[vcf == "0/0"] <- 0
+vcf[vcf == "1/1"] <- 1
+vcf[vcf == "0/1"] <- NA
+```
+```{r, eval=T, echo=T, warning=F, message=F, size="tiny"}
+vcf
+```
+
+<!-- -------------------------------------- -->
+# Making VCF tidy (i.e. "long" format)
+```{r, eval=T, echo=T, warning=F, message=F, size="tiny"}
+
+longvcf <- vcf %>% 
+  tidyr::gather(data=., key="ID", value="GT", 5:ncol(vcf)) %>% 
+  dplyr::arrange(CHROM, POS)
+
+longvcf
+
+```
+
+<!-- -------------------------------------- -->
+# What if we wanted wide format?
+```{r, eval=T, echo=T, warning=F, message=F, size="tiny"}
+
+longvcf %>% 
+  tidyr::spread(data=., key="ID", value="GT") 
+
+```  
+  
+<!-- -------------------------------------- -->
+# Check-in 
+
+![](/Users/nickbrazeau/Documents/GitHub/18Fall_EPID799C_RforEpi/nfblectures/figures/xkcd_computer.png)\  
+
+
+
+<!-- -------------------------------------- -->
+# ggplot     
+Really, the package is `ggplot2` written by Hadley Wickham and is a series of functions that follow a specific data visaulization philosophy based on the "Grammar of Graphics".
+  
+<!-- -------------------------------------- -->
+# Grammar of Graphics       
+The Grammar of Graphics by Leland Wilkinson  
+
+* Goal was to have a consistent "language" around graphics. 
+* This boils down to a "recipe", where every graph has a few key components:   
+    1. Data (to plot)
+    2. A way to represent the points (geoms)   
+    3. Coordinate system   
+ 
+<!-- -------------------------------------- -->
+# ggplot       
+In Hadley's own words...   
+     
+ 
+   
+![](/Users/nickbrazeau/Documents/GitHub/18Fall_EPID799C_RforEpi/nfblectures/figures/ggplot.png)\  
+
+ 
+
+ <!-- -------------------------------------- -->
+ 
+# Let's Get Started (1)              
+You can think of a `ggplot2` layer as containing 5 main elements: 
+1. data [source]
+2. mapping = aes() [what we want to plot]
+3. geom [shape/characteristics of our plot]
+4. stat [statistical transformations to do to the data]
+5. position [adjust position characteristics of geom]*
+
+* Personally, I rarely use position except for `jitter` (until I learned geom_jitter)
+
+ <!-- -------------------------------------- -->
+ 
+# Let's Get Started (2)        
+![](/Users/nickbrazeau/Documents/GitHub/18Fall_EPID799C_RforEpi/nfblectures/figures/gglot_overview.png)\    
+
+ggplot prefers data to be in the "long" format (see above). 
+
+
+<!-- -------------------------------------- -->
+# Digging into Code (1)     
+\columnsbegin
+\column{.5\textwidth}
+First we start with `ggplot` which creates a coordinate system for use to add our layer to (default cartesian coordinates -- distance from origin, usually 0,0 or the min of your data).   
+```{r, eval=F, echo=T, size="tiny"}
+
+ggplot2::ggplot(data=births)
+
+```
+\column{.5\textwidth}
+```{r, eval=T, echo=F, size="tiny"}
+
+ggplot2::ggplot()
+
+```
+\columnsend
+
+<!-- -------------------------------------- -->
+# Digging into Code (2)     
+\columnsbegin
+\column{.5\textwidth}
+Next, we need to pick what variables we actually want to map. From [ggplot2](https://ggplot2.tidyverse.org/reference/aes.html), "Aesthetic mappings describe how variables in the data are mapped to visual properties (aesthetics) of geoms. Aesthetic mappings can be set in ggplot2() and in individual layers."
+```{r, eval=F, echo=T, size="tiny"}
+
+ggplot2::ggplot(data=births, 
+                aes(x=mage, y=wksgest))
+
+```
+\column{.5\textwidth}
+```{r, eval=T, echo=F, size="tiny"}
+
+ggplot2::ggplot(data=births, 
+                aes(x=mage, y=wksgest))
+
+```
+\columnsend
+
+<!-- -------------------------------------- -->
+# Digging into Code (3)     
+\columnsbegin
+\column{.5\textwidth}
+Now, we need to pick how we want our variables to be plotted -- i.e. what kind of graph.  
+```{r, eval=F, echo=T, size="tiny"}
+
+ggplot2::ggplot(data=births, 
+                aes(x=mage, y=wksgest)) + 
+  ggplot2::geom_point()
+
+```
+\column{.5\textwidth}
+```{r, eval=T, echo=F, size="tiny"}
+
+ggplot2::ggplot(data=births, 
+                aes(x=mage, y=wksgest)) + 
+  ggplot2::geom_point()
+
+```
+\columnsend
+
+<!-- -------------------------------------- -->
+# Digging into Code (4/5)     
+\columnsbegin
+\column{.5\textwidth}
+By default, `stat` is equal to "identity" for the geom_point geom. This means do not transform my data. Similarly, by default, the `position` is equal to "identity" for the geom_point geom. This means do not move my data (other options include jitter and dodge).
+```{r, eval=F, echo=T, size="tiny"}
+
+ggplot2::ggplot(data=births, 
+                aes(x=mage, y=wksgest)) + 
+  ggplot2::geom_point()
+
+```
+\column{.5\textwidth}
+```{r, eval=T, echo=F, size="tiny"}
+
+ggplot2::ggplot(data=births, 
+                aes(x=mage, y=wksgest)) + 
+  ggplot2::geom_point()
+
+```
+\columnsend
+
+
+
+<!-- -------------------------------------- -->
+# Digging into Code geoms
+  
+When you pick a `geom` someone has made the `position` and the `stat` decision for you (typically). Personally, the only time I have opened up the `layer` function and made my own layers if for package development (but would love to hear other examples!). For example, compare `geom_point` and `geom_jitter` which have different `position` arguments (by default). 
+
+\columnsbegin
+\column{.5\textwidth}
+```{r, eval=T, echo=T, size="tiny"}
+
+ggplot2::ggplot(data=births, 
+                aes(x=mage, y=wksgest)) + 
+  ggplot2::geom_point()
+
+```
+\column{.5\textwidth}
+```{r, eval=T, echo=T, size="tiny"}
+
+ggplot2::ggplot(data=births, 
+                aes(x=mage, y=wksgest)) + 
+  ggplot2::geom_jitter()
+
+```
+\columnsend
+
+
+<!-- -------------------------------------- -->
+# Geoms         
+There are more geoms than I can count and more coming out every day as R-developers push out new packages. We will play with some of these new geoms on Wednesday.     
+[ggplot2 cheatshet](https://www.rstudio.com/wp-content/uploads/2015/03/ggplot2-cheatsheet.pdf)
+  
+  
+
+![](/Users/nickbrazeau/Documents/GitHub/18Fall_EPID799C_RforEpi/nfblectures/figures/geoms.png)\  
+
+<!-- -------------------------------------- -->
+# Geoms         
+These are the main geoms (thank you Garrick Adenbuie for this [Figure](https://pkg.garrickadenbuie.com/trug-ggplot2/#19)).    
+![](/Users/nickbrazeau/Documents/GitHub/18Fall_EPID799C_RforEpi/nfblectures/figures/geoms2.png)\  
+
+
+<!-- -------------------------------------- -->
+# Check-in 
+
+![](/Users/nickbrazeau/Documents/GitHub/18Fall_EPID799C_RforEpi/nfblectures/figures/xkcd_computer.png)\  
+
+
+<!-- -------------------------------------- -->
+# ggplot objects are appendable    
+```{r, eval=T, echo=T, size="tiny", fig.width=8, fig.height=3, res=100}
+births %>% 
+  dplyr::group_by(mage) %>% 
+  dplyr::summarise(meanwksgest = mean(wksgest)) %>%
+  ggplot2::ggplot(data=., aes(x=mage, y=meanwksgest)) + 
+  ggplot2::geom_point() + 
+  ggplot2::geom_line(color="red") +
+  xlab("Maternal Age") +  
+  ylab("Mean Weeks Gestation") + 
+  ggtitle("Maternal age versus mean weeks gestations") +
+  ggplot2::labs(subtitle = "Sample Sizes are Unequal",
+                caption = "Mean may not be a good measure")
+  
+  
+```
+
+<!-- -------------------------------------- -->
+# ggplot objects are appendable 
+Note the difference here in which layer is called first! 
+   
+   
+```{r, eval=T, echo=T, size="tiny", fig.width=8, fig.height=3, res=100}
+births %>% 
+  dplyr::group_by(mage) %>% 
+  dplyr::summarise(meanwksgest = mean(wksgest)) %>%
+  ggplot2::ggplot(data=., aes(x=mage, y=meanwksgest)) + 
+  ggplot2::geom_line(color="red") +
+  ggplot2::geom_point() + 
+  xlab("Maternal Age") +  
+  ylab("Mean Weeks Gestation") + 
+  ggtitle("Maternal age versus mean weeks gestations") +
+  ggplot2::labs(subtitle = "Sample Sizes are Unequal",
+                caption = "Mean may not be a good measure")
+  
+  
+```
+
+<!-- -------------------------------------- -->
+# Preferred practice    
+If we use the `ggplot` function, we automatically pass the (...) arguments to each geom. However, if I know I have mutliple datasets that I would like to plot layer, then I will use the `data` call for each geom. 
+```{r, eval=F, echo=T, size="tiny"}
+magewksgest <- births %>% 
+  dplyr::group_by(mage) %>% 
+  dplyr::summarise(n=n(), meanwksgest = mean(wksgest)) 
+
+ggplot2::ggplot() +
+  ggplot2::geom_point(data=births, aes(x=mage, y=wksgest)) + 
+  ggplot2::geom_line(data=magewksgest, aes(x=mage, y=meanwksgest), color = "red")
+  
+  
+```
+
+
+<!-- -------------------------------------- -->
+# Digging into Aesthetics (1)
+More [R for Data Scientist](http://r4ds.had.co.nz/data-visualisation.html#aesthetic-mappings) (there is a theme here), "An aesthetic is a visual property of the objects in your plot. Aesthetics include things like the size, the shape, or the color of your points. You can display a point (like the one below) in different ways by changing the values of its aesthetic properties."  
+  
+So far we have only really thought about `aesthetics` as the X and Y variables we would like to plot (on our cartesian graph). What if we wanted them to have additional features by a third variable?
+
+<!-- -------------------------------------- -->
+# Digging into Aesthetics (2)   
+```{r, eval=T, echo=T, size="tiny", fig.height=3, fig.width=8, res=100}
+births %>% 
+  ggplot2::ggplot() +
+  ggplot2::geom_point(data=births, aes(x=mage, y=wksgest, color=preterm_f))
+# note use of factor here. R asssume factors are disjoint indicators/categorical vars
+# R assumes characters and numerics are (maybe) continous by default
+
+```
+
+# Digging into Aesthetics (3)   
+```{r, eval=T, echo=T, size="tiny", fig.height=3, fig.width=8, res=100}
+births %>% 
+  ggplot2::ggplot() +
+  ggplot2::geom_point(data=births, aes(x=mage, y=wksgest, 
+                                       colour=preterm_f, shape=preterm_f))
+# note use of factor here. R asssume factors are disjoint indicators/categorical vars
+# R assumes characters and numerics are (maybe) continous by default
+
+```
+
+
+<!-- -------------------------------------- -->
+# Digging into Aesthetics (4)  
+```{r, eval=T, echo=T, size="tiny", fig.height=3, fig.width=8, res=100}
+ggplot2::ggplot() +
+  ggplot2::geom_point(data=births, 
+                      aes(x=mage, y=wksgest, size=preterm_f)) 
+```
+
+<!-- -------------------------------------- -->
+# Digging into Aesthetics (5)  
+```{r, eval=T, echo=T, size="tiny", fig.height=3, fig.width=8, res=100}
+ggplot2::ggplot() +
+  ggplot2::geom_point(data=births, 
+                      aes(x=mage, y=wksgest, alpha=preterm_f)) 
+```
+
+<!-- -------------------------------------- -->
+# Differentiating Aes from geom properties (1)    
+You may have noticed that I have used color inside and outside of the `aes()`. This is an **important** distinction. When different properties (i.e. color, shape) are put inside the `aes(colour = <var>)` and assigned a variable, R interprets this as "You want me to change the color (shape, etc) dependent on this covariate".    
+  
+This is contrasted by the code `<geom>(aes(...) + colour = "red")` where we have assigned a specific propoerty to the entire geom object. 
+  
+Let's take a look.    
+
+<!-- -------------------------------------- -->
+# Differentiating Aes from geom properties (2)    
+\columnsbegin
+\column{.5\textwidth}
+```{r, eval=T, echo=T, size="tiny"}
+
+ggplot2::ggplot(data=births, 
+                aes(x=mage, y=wksgest, 
+                    color = "blue")) + 
+  ggplot2::geom_point()
+
+```
+\column{.5\textwidth}
+```{r, eval=T, echo=T, size="tiny"}
+
+ggplot2::ggplot(data=births, 
+                aes(x=mage, y=wksgest)) + 
+  ggplot2::geom_point(color="blue")
+
+```
+\columnsend
+
+<!-- -------------------------------------- -->
+# Differentiating Aes from geom properties (3) 
+It is also worth noting that there is a difference between the `fill` and `color` options for geoms. This is important for many geoms.
+
+```{r, eval=T, echo=T, size="tiny", fig.height=3, fig.width=8, res=100}
+
+ggplot2::ggplot(data=births, 
+                aes(x=mage)) + 
+  ggplot2::geom_bar(color="blue", fill="grey")
+
+```
+
+# Digging into Positions (1)
+The "position" argument is specific for many geoms. However, bar graphs (and a few other geoms) have a couple of "nuances" (see rich discussion [R for Data Scienc](http://r4ds.had.co.nz/visualize.html)). We will explore these briefly. 
+
+# Digging into Positions (2)
+\columnsbegin
+\column{.5\textwidth}
+```{r, eval=T, echo=T, size="tiny", fig.width=8, fig.height=4}
+
+ggplot2::ggplot(data=births, 
+                aes(x=raceeth_f, 
+                    fill=preterm_f)) + 
+  ggplot2::geom_bar() +
+  theme(axis.text.x = element_text(angle=90))
+
+```
+\column{.5\textwidth}
+```{r, eval=T, echo=T, size="tiny", fig.width=8, fig.height=4}
+
+ggplot2::ggplot(data=births, 
+                aes(x=raceeth_f, 
+                    fill=preterm_f)) + 
+  ggplot2::geom_bar(position="dodge") +
+  theme(axis.text.x = element_text(angle=90))
+
+```
+\columnsend
+
+
+# Digging into Positions (3)
+\columnsbegin
+\column{.5\textwidth}
+```{r, eval=T, echo=T, size="tiny", fig.width=8, fig.height=4}
+
+ggplot2::ggplot(data=births, 
+                aes(x=raceeth_f, 
+                    fill=preterm_f)) + 
+  ggplot2::geom_bar() +
+  theme(axis.text.x = element_text(angle=90))
+
+```
+\column{.5\textwidth}
+```{r, eval=T, echo=T, size="tiny", fig.width=8, fig.height=4}
+
+ggplot2::ggplot(data=births, 
+                aes(x=raceeth_f, 
+                    fill=preterm_f)) + 
+  ggplot2::geom_bar(position="fill") +
+  theme(axis.text.x = element_text(angle=90))
+
+```
+\columnsend
+
+<!-- -------------------------------------- -->
+# Digging into Statistical Transformations (1)
+This is a bit more of a nuanced topic, as geoms typically have predifined statistical transformations (many times "identity") that we can override. The `stat="identity"` code block works because we of the way R interprets layers (see `?layer`) but it is really a function: `stat_identity`. So, if you want to know what the stat is doing (i.e. help documentation), you will need to call the `?<function>`
+
+In additoin, we can actually map stats to our regular aesthetic using ".." notation. For example, this is commonly done when you want to change a count to a proportion (..prop..). From [R for Data Scientist](http://r4ds.had.co.nz/data-visualisation.html#aesthetic-mappings), "The two dots that surround prop notify ggplot2 that the prop variable appears in the transformed data set that is created by the stat, and not the raw data set. Be sure to include these dots whenever you refer to a variable that is created by a stat.""
+
+
+<!-- -------------------------------------- -->
+# Digging into Statistical Transformations (2)
+There are 22 stats for use ... [R for Data Scientist](http://r4ds.had.co.nz/visualize.html) lists them here: 
+![](/Users/nickbrazeau/Documents/GitHub/18Fall_EPID799C_RforEpi/nfblectures/figures/stat.png)\  
+
+<!-- -------------------------------------- -->
+# Digging into Statistical Transformations (3)
+## Homework 3, Question (hard part)
+
+\columnsbegin
+\column{.5\textwidth}
+```{r, eval=T, echo=T, size="tiny"}
+
+ggplot(births, aes(x=weeknum, y=..prop..)) + 
+  geom_bar() +
+  theme(axis.title.y = 
+          element_text(size=20, face="bold"))
+
+```
+\column{.5\textwidth}
+```{r, eval=T, echo=T, size="tiny"}
+
+ggplot(births, aes(x=weeknum)) + 
+  geom_bar() +
+  theme(axis.title.y = 
+          element_text(size=20, face="bold"))
+
+
+```
+\columnsend
+
+
+
+<!-- -------------------------------------- -->
+# Additonal Important Features of ggplot
+* *Labels* to control the title and axis labels.  
+  
+**Wednesday**
+   
+* *Scales* to adjust aesthetics and colors (`scale_*_*()`)
+* *Facets* to divide a plot into subplots based on the values of one or more discrete variables.
+* *Coordinate systems* if don’t want to use default cartesian coordinates.
+* *Themes* to modify the overall appearance of the plot (background, grid lines).
+
+<!-- -------------------------------------- -->
+# Labels
+```{r, eval=T, echo=T, size="tiny", fig.width=8, fig.height=3, res=100}
+
+# note differences between %>% and +
+births %>% 
+  dplyr::group_by(mage) %>% 
+  dplyr::summarise(meanwksgest = mean(wksgest)) %>%
+  ggplot2::ggplot(data=., aes(x=mage, y=meanwksgest)) + 
+  ggplot2::geom_point() + 
+  ggplot2::labs(title="Maternal age versus mean weeks gestations", 
+                subtitle = "Sample Sizes are Unequal",
+                caption = "Mean may not be a good measure",
+                x = "Maternal Age", 
+                y = "Mean Weeks Gestation")
+  
+  
+```
+
+<!-- -------------------------------------- -->
+# Labels (Equivalent approach)
+```{r, eval=T, echo=T, size="tiny", fig.width=8, fig.height=3, res=100}
+
+# note differences between %>% and +
+births %>% 
+  dplyr::group_by(mage) %>% 
+  dplyr::summarise(meanwksgest = mean(wksgest)) %>%
+  ggplot2::ggplot(data=., aes(x=mage, y=meanwksgest)) + 
+  ggplot2::geom_point() + 
+  xlab("Maternal Age") +  
+  ylab("Mean Weeks Gestation") + 
+  ggtitle("Maternal age versus mean weeks gestations") +
+  ggplot2::labs(subtitle = "Sample Sizes are Unequal",
+                caption = "Mean may not be a good measure")
+  
+  
+```
+
+<!-- -------------------------------------- -->
+# Additonal Important Features of ggplot    
+* *Labels* to control the title and axis labels.  
+
+**For Wednesday**
+  
+* *Facets* to divide a plot into subplots based on the values of one or more discrete variables.
+* *Coordinate systems* if don’t want to use default cartesian coordinates.
+* *Themes* to modify the overall appearance of the plot (background, grid lines).
+
+
+<!-- -------------------------------------- -->
+# Pulling it all together! 
+## Homework 3, Question 2
+```{r, eval=T, echo=T, size="tiny", fig.width=8, fig.height=3, res=100}
+mage_df = births %>% group_by(mage) %>% #(HW3.2.2) setup 
+  summarize(n=n(), 
+            pct_earlyPNC = mean(pnc5, na.rm=T),
+            pct_preterm = mean(preterm, na.rm=T))
+head(mage_df) #(HW3.2.2) answer 
+
+#(HW3.2.3A)  
+ggplot(mage_df, aes(mage, pct_preterm))+ 
+  geom_point(aes(size=n))+
+  geom_smooth(aes(weight=n), color="blue", method="loess")+
+  labs(title="% Preterm vs. Maternal Age", 
+       x="maternal age", y="% preterm", 
+       subtitle="Investigating function form of maternal age", 
+       caption="Note for future glms: Seems quadratic. Blue is loess, red is square linear.")
+```
+
+<!-- -------------------------------------- -->
+# Pulling it all together!     
+## Check out geom_smooth
+It is an incredible function that allows for a lot of flexibility!!    
+```{r, eval=T, echo=T, size="tiny", fig.width=8, fig.height=3, res=100}
+
+# ?geom_smooth
+
+```
+
+<!-- -------------------------------------- -->
+# Conclusion    
+The graphs we made today were kind-of pretty? 
+Wednesday we are going to be focusing a lot on making customized, gorgeous figures with scales, facetting, themes, grids, etc.   
+We will also be looking at how to make figures interactive (ridiculously easy thanks to `plotly`). 
+
+

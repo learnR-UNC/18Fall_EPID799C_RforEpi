@@ -1,0 +1,36 @@
+---
+title: "Lecture 18"
+subtitle: "Rmarkdown II"
+author: "2018 R Teaching Team"
+date: "October 3, 2018"
+output: 
+  beamer_presentation:
+      includes:
+          in_header: misc/header.tex
+  pdf_document:
+    fig_caption: false
+editor_options: 
+  chunk_output_type: console
+widescreen: yes
+---
+```{r, include=FALSE}
+def.chunk.hook  <- knitr::knit_hooks$get("chunk")
+knitr::knit_hooks$set(chunk = function(x, options) {
+  x <- def.chunk.hook(x, options)
+  ifelse(options$size != "normalsize", paste0("\\", options$size,"\n\n", x, "\n\n \\normalsize"), x)
+})
+# https://stackoverflow.com/questions/26372138/beamer-presentation-rstudio-change-font-size-for-chunk
+# https://stackoverflow.com/questions/25646333/code-chunk-font-size-in-rmarkdown-with-knitr-and-latex
+```
+
+# Acknowledgements 
+1. Mike Fliss & Sara Levintow! 
+2. stackoverflow (particularly user `David` for [lecture styling - link](https://stackoverflow.com/questions/42035981/code-in-columns-in-rmarkdown-presentation)) 
+3. [R Markdown: The Definitive Guide - link](https://bookdown.org/yihui/rmarkdown/) Yihui Xie, J. J. Allaire, Garrett Grolemund
+3. R & Rstudio Teams
+
+<!-- -------------------------------------- -->
+
+# This Lecture
+
+## Goals of Lecture

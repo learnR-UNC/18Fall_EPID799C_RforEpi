@@ -1,0 +1,1239 @@
+---
+title: "Lecture 10"
+subtitle: "Graphics::ggplot II"
+author: "2018 R Teaching Team"
+date: "October 3, 2018"
+output: 
+  beamer_presentation:
+      includes:
+          in_header: misc/header.tex
+  pdf_document:
+    fig_caption: false
+editor_options: 
+  chunk_output_type: console
+widescreen: yes
+---
+```{r, include=FALSE}
+knitr::opts_chunk$set(warning = F, message = F)
+def.chunk.hook  <- knitr::knit_hooks$get("chunk")
+knitr::knit_hooks$set(chunk = function(x, options) {
+  x <- def.chunk.hook(x, options)
+  ifelse(options$size != "normalsize", paste0("\\", options$size,"\n\n", x, "\n\n \\normalsize"), x)
+})
+# https://stackoverflow.com/questions/26372138/beamer-presentation-rstudio-change-font-size-for-chunk
+# https://stackoverflow.com/questions/25646333/code-chunk-font-size-in-rmarkdown-with-knitr-and-latex
+```
+
+```{r, include=F, eval=T}
+library(tidyverse)
+library(plotly)
+```
+
+# Acknowledgements
+1. Mike Fliss & Sara Levintow! 
+2. stackoverflow (particularly user `David` for [lecture styling - link](https://stackoverflow.com/questions/42035981/code-in-columns-in-rmarkdown-presentation)) 
+3. [R Markdown: The Definitive Guide - link](https://bookdown.org/yihui/rmarkdown/) Yihui Xie, J. J. Allaire, Garrett Grolemund
+4. Hadley for [R for Data Scientists](http://r4ds.had.co.nz/) and [Advanced R](http://adv-r.had.co.nz/)
+4. R & Rstudio Teams
+
+<!-- -------------------------------------- -->
+# This Week
+1. **Monday**: Review the `Tidyverse` and understand the basics of `ggplot2`  
+2. **Today**: Advanced `ggplot2` and `ggplot2` swag  
+
+## Structure of Lecture
+Contains `R code` in grey boxes and `R output` followed by `##`. 
+
+<!-- -------------------------------------- -->
+# Namespaces Clarification 
+You do not need to use `namespaces::` in your code (`ggplot::geom_point`) if you load the package (`library(ggplot)`). I often use namespaces because I forget the exact function name within packages (was it mutate, mutates, etc, etc) and it is preferred practice when writing packages (habits are hard to break). Sorry for the confusion! 
+   
+
+<!-- -------------------------------------- -->
+# Note
+   
+I have done this to decrease the size of this document. You can do the same and make plots like mine OR do not randomly subset your births dataframe and have plots for your homework. 
+```{r, echo=F, eval=T}
+births <- readRDS(file="~/Documents/GitHub/18Fall_EPID799C_RforEpi/data/births_afterhw2.RDS")
+```
+```{r, echo=T, eval=F}
+births <- readRDS(file="<yourpath>")
+```
+```{r, echo=T, eval=T, size="small"}
+set.seed(43)
+births <- births[sample(1:nrow(births), 5e3, 
+                        replace=FALSE), ]
+```
+
+# Let's Review Data Formats (1)
+![](/Users/nickbrazeau/Documents/GitHub/18Fall_EPID799C_RforEpi/nfblectures/figures/tidydata.png)\
+  
+Thank you, [R for Data Scientists](http://r4ds.had.co.nz/)
+
+<!-- -------------------------------------- -->
+# Let's Review Data Formats (2)
+![](/Users/nickbrazeau/Documents/GitHub/18Fall_EPID799C_RforEpi/nfblectures/figures/longwide.png)\
+Thank you, [Garrick Aden-Buie](https://github.com/gadenbuie)! 
+
+<!-- -------------------------------------- -->
+# Let's Review and Practice with the `Tidyverse` (1)   
+## Homework 3, Question 2 
+### Create a summary table for maternal age 
+**Using dplyr, create a summary table for mage from the births dataset whose head looks like below**
+![](/Users/nickbrazeau/Documents/GitHub/18Fall_EPID799C_RforEpi/nfblectures/figures/hw3q2.png)\
+
+
+<!-- -------------------------------------- -->
+# Let's Review and Practice with the `Tidyverse` (2)         
+## Homework 3, Question 2 
+### Pseudocode
+**on board**
+
+### Real Code 
+**on board**
+
+# Run It
+We are going to use this newly created `data.frame` in a few slides. 
+```{r, echo=F, eval=T}
+mage_df <- births %>% 
+  group_by(mage) %>% #(HW3.2.2) setup 
+  summarize(n=n(), 
+            pct_earlyPNC = mean(pnc5, na.rm=T),
+            pct_preterm = mean(preterm, na.rm=T))
+```
+
+<!-- -------------------------------------- -->
+# Let's Review ggplot (1)   
+\columnsbegin
+\column{.5\textwidth}
+
++ Grammar of Graphics.    
++ 5 Main Elements (right).       
++ Works in layers (appendable).       
+
+\column{.5\textwidth}
+![](/Users/nickbrazeau/Documents/GitHub/18Fall_EPID799C_RforEpi/nfblectures/figures/gglot_overview.png)\
+\columnsend
+
+<!-- -------------------------------------- -->
+# Let's Review ggplot (2)  
+## Homework 3, Question 3A
+**Create the maternal age functional form plot below (note the “weight” aesthetic is important for LOESS).**
+*HINT: We are using the mage_df we made above*  
+![](/Users/nickbrazeau/Documents/GitHub/18Fall_EPID799C_RforEpi/nfblectures/figures/hw3q3.png)\
+
+
+<!-- -------------------------------------- -->
+# Let's Review ggplot (3)  
+## Homework 3, Question 3A
+### Pseudocode
+**on board**
+
+### Real Code 
+**on board**
+
+<!-- -------------------------------------- -->
+# Let's Review ggplot (4)  
+```{r, eval=F, echo=T, size="tiny"}
+
+ggplot(data = mage_df, aes(x = mage, y = pct_preterm))+ 
+  geom_point(aes(size=n))+
+  geom_smooth(aes(weight=n), color="blue", method="loess")+
+  labs(title="% Preterm vs. Maternal Age", 
+       x="maternal age", y="% preterm", 
+       subtitle="Investigating function form of maternal age", 
+       caption="Note for future glms: Seems quadratic. Blue is loess, red is square linear.")
+```
+
+# Let's Review ggplot (5)  
+## Aeshetics 
+How do I know which `geoms` understand specific `aesthetics`?
+`?<geom>`  
+
+## Stat Transformations
+What `method="loess"` is doing behind the scenes is (essentially) running `stat::loess`, creating a new dataframe of "predictions", and overlaying it on our plot. This is to say, we are performing a statistical transformation of our data (i.e. loess regression) and appending the result on as another layer.  
+
+<!-- -------------------------------------- -->
+# Let's Review ggplot (6) 
+## Equivalent Approach
+\columnsbegin
+\column{.5\textwidth}
+```{r, eval=F, echo=T, size="tiny"}
+
+ggplot()+ 
+  geom_point(data=mage_df, 
+             aes(x=mage, y=pct_preterm, size=n))+
+  geom_smooth(data=mage_df, 
+             aes(x=mage, y=pct_preterm, weight=n), 
+             color="blue", method="loess")
+# + labels (removed for space)
+```
+\column{.5\textwidth}
+```{r, eval=T, echo=F, size="tiny"}
+
+ggplot(mage_df, aes(mage, pct_preterm))+ 
+  geom_point(aes(size=n))+
+  geom_smooth(aes(weight=n), 
+              color="blue", method="loess")+
+  labs(title="% Preterm vs. Maternal Age", 
+       x="maternal age", y="% preterm", 
+       subtitle="Investigating function form of maternal age", 
+       caption="Note for future glms: Seems quadratic. Blue is loess, red is square linear.")
+```
+\columnsend
+
+
+# Let's Review ggplot (7) 
+## Why use `data` specific calls for `geoms`
+\columnsbegin
+\column{.5\textwidth}
+```{r, eval=F, echo=T, size="tiny"}
+
+ggplot() + 
+  geom_bar(data=births, aes(x=mage, y=..prop..), 
+           color="grey", fill="grey", alpha=0.8) +
+  geom_point(data=mage_df, 
+             aes(x=mage, y=pct_preterm, size=n))+
+  geom_smooth(data=mage_df, 
+             aes(x=mage, y=pct_preterm, weight=n), 
+             color="blue", method="loess") 
+# + labels (removed for space)
+# # theme change for viewing 
+```
+\column{.5\textwidth}
+```{r, eval=T, echo=F}
+
+ggplot() + 
+  geom_bar(data=births, aes(x=mage, y=..prop..), 
+           color="grey", fill="grey", alpha=0.8) +
+  geom_point(data=mage_df, 
+             aes(x=mage, y=pct_preterm, size=n))+
+  geom_smooth(data=mage_df, 
+             aes(x=mage, y=pct_preterm, weight=n), 
+             color="blue", method="loess") +
+  labs(title="% Preterm vs. Maternal Age", 
+       x="maternal age", y="% preterm", 
+       subtitle="Investigating function form of maternal age", 
+       caption="Note for future glms: Seems quadratic. Blue is loess, red is square linear.") + 
+  theme_minimal()
+```
+\columnsend
+
+<!-- -------------------------------------- -->
+# Check-in 
+
+![](/Users/nickbrazeau/Documents/GitHub/18Fall_EPID799C_RforEpi/nfblectures/figures/xkcd_computer.png)\  
+
+<!-- -------------------------------------- -->
+# Additonal Important Features of ggplot
+\columnsbegin
+\column{.5\textwidth}
+  
+**Today**
+   
+* *Coordinate systems* if don’t want to use default cartesian coordinates.
+* *Facets* to divide a plot into subplots based on the values of one or more discrete variables.
+* *Scales* to adjust aesthetics and colors (`scale_*_*()`)
+* *Themes* to modify the overall appearance of the plot (background, grid lines).
+
+\column{.5\textwidth}
+![](/Users/nickbrazeau/Documents/GitHub/18Fall_EPID799C_RforEpi/nfblectures/figures/gglot_overview.png)\
+\columnsend
+
+# Coordinate Systems(1)
+
+![](/Users/nickbrazeau/Documents/GitHub/18Fall_EPID799C_RforEpi/nfblectures/figures/coord.png)\  
+
+# Coordinate Systems (2)
+\columnsbegin
+\column{.5\textwidth}
+```{r, eval=F, echo=T, size="tiny"}
+ggplot() + 
+  geom_bar(data=births, aes(x=mage, y=..prop..)) +
+  coord_flip()
+```
+\column{.5\textwidth}
+```{r, eval=T, echo=F}
+
+ggplot() + 
+  geom_bar(data=births, aes(x=mage, y=..prop..)) +
+  coord_flip()
+
+```
+\columnsend
+
+# Map Projections (1)
++ Mike will be covering maps the week of 10/29.   
++ There are a lot of map packages in R (`spplot`, `sp`, `leaflet`, `rgdal`, `tmap`, `ggmap`)  
++ A new package called `sf` is based on the tidy-data framework (and seems to be the preferred method as of late)    
++ ggplot: `geom_polygon` (`many`) or `geom_sf` (`sf`)  
+
+# Map Projections (2)
+\columnsbegin
+\column{.5\textwidth}
+Obligatory XKCD Joke.
+\column{.5\textwidth}
+![](/Users/nickbrazeau/Documents/GitHub/18Fall_EPID799C_RforEpi/nfblectures/figures/xkcd_map_projections.png)\
+\columnsend
+
+
+# Facets 
+Divide a plot into subplots based on the values of one or more discrete variables.
+There are two main facet functions: 
+
++ facet_wrap
++ facet_grid  
+
+# facet_wrap
+`?facet_wrap`: "facet_wrap wraps a 1d sequence of panels into 2d. This is generally a better use of screen space than facet_grid() because most displays are roughly rectangular." In simpler terms, `facet_wrap` will try to maximize white space for you. 
+       
+       
+       
+       
+\columnsbegin
+\column{.5\textwidth}
+```{r, eval=F, echo=T, size="tiny"}
+ggplot() + 
+  geom_point(data=births, 
+             aes(x=mage, y=wksgest, 
+                 color=pnc5_f), alpha=0.5) +
+  facet_wrap(~raceeth_f)
+```
+\column{.5\textwidth}
+```{r, eval=T, echo=F}
+
+ggplot() + 
+  geom_point(data=births, 
+             aes(x=mage, y=wksgest, 
+                 color=pnc5_f), alpha=0.5) +
+  facet_wrap(~raceeth_f)
+
+```
+\columnsend
+
+# facet_grid (1)
+`facet_grid` forms a matrix of plots per your spefications.  
+   
+   
+   
+   
+\columnsbegin
+\column{.5\textwidth}
+```{r, eval=F, echo=T, size="tiny", fig.height=5, fig.width=4}
+ggplot() + 
+  geom_point(data=births, 
+             aes(x=mage, y=wksgest, 
+                 color=pnc5_f), alpha=0.5) +
+  facet_grid(.~raceeth_f) +
+  ggtitle("Forcing to 1 Row")
+```
+\column{.5\textwidth}
+```{r, eval=T, echo=F}
+
+ggplot() + 
+  geom_point(data=births, 
+             aes(x=mage, y=wksgest, 
+                 color=pnc5_f), alpha=0.5) +
+  facet_grid(.~raceeth_f) +
+  ggtitle("Forcing to 1 Row")
+
+```
+\columnsend
+
+# facet_grid (2)
+  
+\columnsbegin
+\column{.5\textwidth}
+```{r, eval=F, echo=T, size="tiny"}
+ggplot() + 
+  geom_point(data=births, 
+             aes(x=mage, y=wksgest, 
+                 color=pnc5_f), alpha=0.5) +
+  facet_grid(.~raceeth_f, 
+             scales = "free_x", space="free_x") +
+  ggtitle("Forcing to 1 Row, 
+          Free X-Scale, Free X-Space")
+```
+\column{.5\textwidth}
+```{r, eval=T, echo=F}
+
+ggplot() + 
+  geom_point(data=births, 
+             aes(x=mage, y=wksgest, 
+                 color=pnc5_f), alpha=0.5) +
+  facet_grid(.~raceeth_f, scales = "free_x", space="free_x") +
+  ggtitle("Forcing to 1 Row, 
+          Free X-Scale, Free X-Space")
+
+```
+\columnsend
+
+# facet_grid (3)
+  
+\columnsbegin
+\column{.5\textwidth}
+```{r, eval=F, echo=T, size="tiny"}
+ggplot() + 
+  geom_point(data=births, 
+             aes(x=mage, y=wksgest, 
+                 color=pnc5_f), alpha=0.5) +
+  facet_grid(raceeth_f~.) +
+  ggtitle("Forcing to 1 Column")
+```
+\column{.5\textwidth}
+```{r, eval=T, echo=F}
+
+ggplot() + 
+  geom_point(data=births, 
+             aes(x=mage, y=wksgest, 
+                 color=pnc5_f), alpha=0.5) +
+  facet_grid(raceeth_f~.) +
+  ggtitle("Forcing to 1 Column")
+
+```
+\columnsend
+
+# facet_grid (4)
+  
+\columnsbegin
+\column{.5\textwidth}
+```{r, eval=F, echo=T, size="tiny"}
+ggplot() + 
+  geom_point(data=births, 
+             aes(x=mage, y=wksgest, 
+                 color=pnc5_f), alpha=0.5) +
+  facet_grid(raceeth_f~., 
+             scales = "free_y", space="free_y") +
+  ggtitle("Forcing to 1 Col, 
+          Free Y-Scale, Free Y-Space")
+```
+\column{.5\textwidth}
+```{r, eval=T, echo=F}
+
+ggplot() + 
+  geom_point(data=births, 
+             aes(x=mage, y=wksgest, 
+                 color=pnc5_f), alpha=0.5) +
+  facet_grid(.~raceeth_f, 
+             scales = "free_y", space="free_y") +
+  ggtitle("Forcing to 1 Col, 
+          Free Y-Scale, Free Y-Space")
+
+```
+\columnsend
+
+# facet_grid (5)
+  
+\columnsbegin
+\column{.5\textwidth}
+```{r, eval=F, echo=T, size="tiny"}
+ggplot() + 
+  geom_point(data=births, 
+             aes(x=mage, y=wksgest, 
+                 color=pnc5_f), alpha=0.5) +
+  facet_grid(raceeth_f~., 
+             scales = "free", space="free") +
+  ggtitle("Forcing to 1 Col, 
+          Free XY-Scale, Free XY-Space")
+```
+\column{.5\textwidth}
+```{r, eval=T, echo=F}
+
+ggplot() + 
+  geom_point(data=births, 
+             aes(x=mage, y=wksgest, 
+                 color=pnc5_f), alpha=0.5) +
+  facet_grid(raceeth_f~., 
+             scales = "free", space="free") +
+  ggtitle("Forcing to 1 Col, 
+          Free XY-Scale, Free XY-Space")
+
+```
+\columnsend
+
+# facet_grid (6)
+`facet_grid` by 2 discrete variables.
+   
+   
+   
+   
+\columnsbegin
+\column{.5\textwidth}
+```{r, eval=F, echo=T, size="tiny", fig.height=5, fig.width=4}
+
+births %>% 
+  mutate(cigdur_f = factor(cigdur, 
+                           levels=c(0,1),
+                           labels=c("Non-smoker",
+                                    "Smoker"))) %>% 
+  filter(!is.na(cigdur_f)) %>% 
+  ggplot(data=., aes(x=mage, y=wksgest, 
+                 color=pnc5_f)) + 
+  geom_point(alpha=0.5) +
+  facet_grid(cigdur_f~raceeth_f) +
+  ggtitle("Facet by 2 Discrete Variables")
+```
+\column{.5\textwidth}
+```{r, eval=T, echo=F}
+
+births %>% 
+  mutate(cigdur_f = factor(cigdur, 
+                           levels=c(0,1),
+                           labels=c("Non-smoker",
+                                    "Smoker"))) %>% 
+  filter(!is.na(cigdur_f)) %>% 
+  ggplot(data=., aes(x=mage, y=wksgest, 
+                 color=pnc5_f)) + 
+  geom_point(alpha=0.5) +
+  facet_grid(cigdur_f~raceeth_f) +
+  ggtitle("Facet by 2 Discrete Variables")
+```
+\columnsend
+
+
+<!-- -------------------------------------- -->
+# Check-in 
+
+![](/Users/nickbrazeau/Documents/GitHub/18Fall_EPID799C_RforEpi/nfblectures/figures/xkcd_computer.png)\  
+
+<!-- -------------------------------------- -->
+# Additonal Important Features of ggplot
+  
+**Today**
+   
+* *Coordinate systems* if don’t want to use default cartesian coordinates.
+* *Facets* to divide a plot into subplots based on the values of one or more discrete variables.
+* *Scales* to adjust aesthetics and colors (`scale_*_*()`)
+* *Themes* to modify the overall appearance of the plot (background, grid lines).
+
+<!-- -------------------------------------- -->
+# Scales (1)
+"Scales control how a plot maps data values to the visual values of an aesthetic. To change the mapping, add a
+custom scale". 
+Basically, the first "\*" is the aesthetic we want to adjust and the second "\*" is scale argument/function that we are calling (pre-built) in `scale_*_*()`. Or -- said another way -- "Note the naming scheme for scales: scale_ followed by the name of the aesthetic, then _, then the name of the scale."
+  
+![](/Users/nickbrazeau/Documents/GitHub/18Fall_EPID799C_RforEpi/nfblectures/figures/scales.png)\  
+
+Thanks, [ggplot-cheatsheet](https://www.rstudio.com/wp-content/uploads/2015/03/ggplot2-cheatsheet.pdf) and [R for Data Science](http://r4ds.had.co.nz/communication-with-plots.html#scales)
+
+
+
+<!-- -------------------------------------- -->
+# Scales (2)
+"The default scales are named according to the type of variable they with: continuous, discrete, datetime, or date."
+  
+Typically we use these scales to change the breaks or interpretation of our x and y aesthetics. 
+
+\columnsbegin
+\column{.5\textwidth}
+```{r, eval=F, echo=T, size="tiny", fig.height=5, fig.width=4}
+
+ggplot(data=births,
+       aes(x=wksgest, y=..prop..)) +
+  geom_bar() +
+  scale_x_continuous(name="X-axis Label",
+                     breaks=seq(from=10, 
+                                to=60, by=1)) +
+  theme(axis.text.x = element_text(angle=90))
+```
+\column{.5\textwidth}
+```{r, eval=T, echo=F}
+
+ggplot(data=births,
+       aes(x=wksgest, y=..prop..)) +
+  geom_bar() +
+  scale_x_continuous(name="X-axis Label",
+                     breaks=seq(from=10, 
+                                to=60, by=1)) +
+  theme(axis.text.x = element_text(angle=90))
+```
+\columnsend
+
+Thanks, [R for Data Science](http://r4ds.had.co.nz/communication-with-plots.html#scales)
+
+
+<!-- -------------------------------------- -->
+# Scales (3)
+By default, our limits min and max is the min and max of the data (+/-1). We can coerce R to overextend our plot with the `limits` argument. 
+  
+      
+     
+
+\columnsbegin
+\column{.5\textwidth}
+```{r, eval=F, echo=T, size="tiny", fig.height=5, fig.width=4}
+
+ggplot(data=births,
+       aes(x=wksgest, y=..prop..)) +
+  geom_bar() +
+  scale_x_continuous(name="X-axis Label",
+                     breaks=seq(from=10, 
+                                to=60, by=1),
+                     limits=c(10,60)) +
+  theme(axis.text.x = element_text(angle=90)) 
+
+```
+\column{.5\textwidth}
+```{r, eval=T, echo=F}
+
+ggplot(data=births,
+       aes(x=wksgest, y=..prop..)) +
+  geom_bar() +
+  scale_x_continuous(name="X-axis Label",
+                     breaks=seq(from=10, 
+                                to=60, by=1),
+                     limits=c(10,60)) +
+  theme(axis.text.x = element_text(angle=90)) 
+```
+\columnsend
+
+Thanks, [R for Data Science](http://r4ds.had.co.nz/communication-with-plots.html#scales)
+
+<!-- -------------------------------------- -->
+# Scales (4)
+We can do the same thing on the y-axis. 
+  
+  
+      
+
+\columnsbegin
+\column{.5\textwidth}
+```{r, eval=F, echo=T, size="tiny", fig.height=5, fig.width=4}
+
+ggplot(data=births,
+       aes(x=wksgest, y=..prop..)) +
+  geom_bar() +
+  scale_x_continuous(name="X-axis Label",
+                     breaks=seq(from=10, 
+                                to=60, by=1),
+                     limits=c(10,60)) +
+  scale_y_continuous(name="Y-axis Label",
+                     breaks=seq(from=0, 
+                                to=1, by=0.1),
+                     limits=c(0,1)) +
+  theme(axis.text.x = element_text(angle=90)) 
+
+```
+\column{.5\textwidth}
+```{r, eval=T, echo=F}
+ggplot(data=births,
+       aes(x=wksgest, y=..prop..)) +
+  geom_bar() +
+  scale_x_continuous(name="X-axis Label",
+                     breaks=seq(from=10, 
+                                to=60, by=1),
+                     limits=c(10,60)) +
+  scale_y_continuous(name="Y-axis Label",
+                     breaks=seq(from=0, 
+                                to=1, by=0.1),
+                     limits=c(0,1)) +
+  theme(axis.text.x = element_text(angle=90)) 
+
+```
+\columnsend
+
+# Scales (5)
+## Aside
+If you just want to change the x- or y-axis limits, and not change the scale of the x- or y-axis, just consider using `xlim` and/or `ylim`. 
+  
+  
+  
+\columnsbegin
+\column{.5\textwidth}
+```{r, eval=F, echo=T, size="tiny", fig.height=5, fig.width=4}
+
+ggplot(data=births,
+       aes(x=wksgest, y=..prop..)) +
+  geom_bar() + 
+  xlim(10,60) +
+  ylim(0,1) +
+  theme(axis.text.x = element_text(angle=90)) 
+
+```
+\column{.5\textwidth}
+```{r, eval=T, echo=F}
+ggplot(data=births,
+       aes(x=wksgest, y=..prop..)) +
+  geom_bar() + 
+  xlim(10,60) +
+  ylim(0,1) +
+  theme(axis.text.x = element_text(angle=90)) 
+```
+\columnsend
+
+
+<!-- -------------------------------------- -->
+# Scale (6)
+   
+\columnsbegin
+\column{.5\textwidth}
+Perhaps, more importantly, scales can be used for 
+
++ Color 
++ Shape  
++ Size 
+
+aesthetic manipulations.
+
+\column{.5\textwidth}
+![](/Users/nickbrazeau/Documents/GitHub/18Fall_EPID799C_RforEpi/nfblectures/figures/scales_colors.png)\   
+  
+Thanks, [ggplot-cheatsheet](https://www.rstudio.com/wp-content/uploads/2015/03/ggplot2-cheatsheet.pdf) 
+\columnsend
+
+<!-- -------------------------------------- -->
+# Scale (7)
+
+  
+\columnsbegin
+\column{.5\textwidth}
+```{r, eval=F, echo=T, size="tiny", fig.height=5, fig.width=4}
+
+ggplot(data=births,
+       aes(x=mage, y=wksgest, 
+           color=preterm_f)) +
+  geom_point() +
+  scale_color_manual(name="Birth Status",
+                     labels = 
+                       c("Preterm", "Term"),
+                     values = 
+                       c("#d73027", "#4575b4"))
+
+```
+\column{.5\textwidth}
+```{r, eval=T, echo=F}
+
+ggplot(data=births,
+       aes(x=mage, y=wksgest, 
+           color=preterm_f)) +
+  geom_point() +
+  scale_color_manual(name="Birth Status",
+                     labels = 
+                       c("Preterm", "Term"),
+                     values = 
+                       c("#d73027", "#4575b4"))
+```
+\columnsend
+
+<!-- -------------------------------------- -->
+# Scale (7)
+
+  
+\columnsbegin
+\column{.5\textwidth}
+```{r, eval=F, echo=T, size="tiny", fig.height=5, fig.width=4}
+births %>% 
+  group_by(mage, pnc5_f) %>% 
+  summarise(meanPTB = mean(preterm)) %>% 
+ggplot(data=.,
+       aes(x=mage, y=pnc5_f, 
+           fill=meanPTB)) +
+  geom_tile() +
+  scale_fill_gradient(name="% PTB",
+                     low = "#d73027", 
+                     high = "#4575b4")
+
+```
+\column{.5\textwidth}
+```{r, eval=T, echo=F}
+
+births %>% 
+  group_by(mage, pnc5_f) %>% 
+  summarise(meanPTB = mean(preterm)) %>% 
+ggplot(data=.,
+       aes(x=mage, y=pnc5_f, 
+           fill=meanPTB)) +
+  geom_tile() +
+  scale_fill_gradient(name="% PTB",
+                     high = "#d73027", 
+                     low = "#4575b4")
+```
+\columnsend
+
+
+# A Note On Color Selection (1)
+Data visualization and the proper communication of data with colors, shapes, labels, etc. I highly recommend this site: [colorbrewer.org](http://colorbrewer2.org) and the R-package `RColorBrewer`. `RColorBrewer` come pre-installed with color palettes that are either qualitative, diverging, or sequential (the website is an extension of the package).
+
+# A Note On Color Selection (2)
+```{r, echo=T, eval=T, fig.width=8, fig.height=5}
+library(RColorBrewer)
+RColorBrewer::display.brewer.all()
+```
+
+# A Note On Color Selection (3)  
+[ggsci](https://ggsci.net/)  offers a collection of ggplot2 color palettes inspired by scientific journals, data visualization libraries, science fiction movies, and TV shows
+   
+  
+Thanks, Mike! 
+
+<!-- -------------------------------------- -->
+# Scale (8)
+
+  
+\columnsbegin
+\column{.5\textwidth}
+```{r, eval=F, echo=T, size="tiny", fig.height=5, fig.width=4}
+
+ggplot(data=births,
+       aes(x=mage, y=wksgest, 
+           shape=preterm_f)) +
+  geom_point() +
+  scale_shape_manual(name="Birth Status",
+                     labels = 
+                       c("Preterm", "Term"),
+                     values = 
+                       c(1,7))
+
+```
+\column{.5\textwidth}
+```{r, eval=T, echo=F}
+
+ggplot(data=births,
+       aes(x=mage, y=wksgest, 
+           shape=preterm_f)) +
+  geom_point() +
+  scale_shape_manual(name="Birth Status",
+                     labels = 
+                       c("Preterm", "Term"),
+                     values = 
+                       c(1,7))
+```
+\columnsend
+
+# Themes
+There are two major flavors of themes: 
+
+1. pre-built themes
+2. customized/self-produced themes
+
+All themes are appendable, so you can change the "settings" in any pre-built theme. 
+
+# Pre-built themes
+These are appendable objects on your ggplot object and include: 
+
++ `theme_bw()`
++ `theme_classic()`
++ `theme_minimal()`
++ `theme_light()`
++ Even more with [ggthemes](https://github.com/cttobin/ggthemr)
+
+# Customized Themes (1)  
+![](/Users/nickbrazeau/Documents/GitHub/18Fall_EPID799C_RforEpi/nfblectures/figures/themes.png)\
+  
+
+# Customized Themes (2)  
+\columnsbegin
+\column{.5\textwidth}
+```{r, eval=F, echo=T, size="tiny"}
+
+ggplot(data=births,
+       aes(x=mage, y=..prop..)) + 
+  geom_bar() +     
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text.x = element_text(size=9),
+        axis.title.y = element_text(size=14, 
+                                    face="bold"),
+        axis.text.y = element_text(size=12, 
+                                   face="bold")
+          )
+
+
+```
+\column{.5\textwidth}
+```{r, eval=T, echo=F}
+ggplot(data=births,
+       aes(x=mage, y=..prop..)) + 
+  geom_bar() +     
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text.x = element_text(size=9),
+        axis.title.y = element_text(size=14, 
+                                    face="bold"),
+        axis.text.y = element_text(size=12, 
+                                   face="bold")
+          )
+
+
+```
+\columnsend
+
+# Theme Elements 
+"... the element_ functions specify the display of how non-data components of the plot are a drawn" as part of the theme argument. Basically, `element_blank` assigns nothing to that property, `element_rect` is for borders and backgrounds, `element_line` and `element_text` are for lines and text, respectively. 
+   
+   
+![](/Users/nickbrazeau/Documents/GitHub/18Fall_EPID799C_RforEpi/nfblectures/figures/theme_elements.png)\
+
+Thank you, [ggplot](https://ggplot2.tidyverse.org/reference/element.html)
+
+# Theme Elements in practice (1)
+```{r, echo=T, eval=F, size="tiny"}
+
+ggplot(data=births, aes(x=mage, y=wksgest)) +
+  geom_point() +
+  labs(title = "Title",
+       subtitle = "Subtitle",
+       caption = "caption",
+       x = "x",
+       y = "y") +
+    theme(plot.title = element_text(hjust = 0.5, family="Arial", size=17, face = "bold"),
+          plot.subtitle = element_text(hjust = 0, family="Arial", size=15, face = "italic"),
+          plot.caption = element_text(hjust = 1, family="Arial", size=12, face = "italic"),
+          axis.text.x = element_text(family="Arial", size=13, face = "bold", angle=90, vjust=0.5),
+          axis.title.x = element_text(family="Arial", size=15, face = "bold"),
+          axis.text.y = element_text(family="Arial", size=13, face = "bold", hjust=0.5),
+          axis.title.y = element_text(family="Arial", size=15, face = "bold"),
+          legend.title = element_text(family="Arial", size=12, face = "bold"),
+          legend.text = element_text(family="Arial", size=10, face = "bold"),
+          legend.title.align = 0.5,
+          panel.background = element_blank(),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          axis.line = element_line(colour = "black", size=2),
+          axis.ticks = element_blank()
+          )
+
+
+```
+
+# Theme Elements in practice (2)
+### Vertical and Horizontal Adjustments
+![](/Users/nickbrazeau/Documents/GitHub/18Fall_EPID799C_RforEpi/nfblectures/figures/hjust_vjust.png)\
+Thank you, [Andrie from StackExchange](https://stackoverflow.com/questions/7263849/what-do-hjust-and-vjust-do-when-making-a-plot-using-ggplot)
+
+# Themes 
+Options are endless. Feel free to email me if you have specific questions but the best way to learn is to play around with the code/options. I recommend making your own theme and using that as your own personal brand. I've had friends receive reviewer comments that their plot "looks like it came straigh from ggplot". So take this opportunity to show your individuality/style! 
+
+
+<!-- -------------------------------------- -->
+# Check-in 
+
+![](/Users/nickbrazeau/Documents/GitHub/18Fall_EPID799C_RforEpi/nfblectures/figures/xkcd_computer.png)\  
+
+
+# Addition Geoms To Consider (1)
++ Predefined interval geom_ribbon (on top of geom_lines)
++ geom_text, geom_label (see ggrepel for better use-cases)
+
+# geom_text
+\columnsbegin
+\column{.5\textwidth}
+```{r, eval=F, echo=T, size="tiny", fig.height=5, fig.width=4}
+
+ggplot(data=births,
+       aes(x=mage, y=wksgest, 
+           color=preterm_f)) +
+  geom_point() +
+  geom_text(aes(x=41, y=25, label="Text"), 
+          color="purple")
+
+```
+\column{.5\textwidth}
+```{r, eval=T, echo=F}
+
+ggplot(data=births,
+       aes(x=mage, y=wksgest, 
+           color=preterm_f)) +
+  geom_point() +
+  geom_text(aes(x=41, y=25, label="Text"), 
+          color="purple", size=8)
+```
+\columnsend
+
+# geom_label
+\columnsbegin
+\column{.5\textwidth}
+```{r, eval=F, echo=T, size="tiny", fig.height=5, fig.width=4}
+library(ggrepel)
+births[sample(1:nrow(births), 10, replace=F), ] %>% 
+  mutate(cigdur_f = factor(cigdur, 
+                           levels=c(0,1),
+                           labels=c("Non-smoker",
+                                    "Smoker"))) %>% 
+  ggplot(data=.,
+       aes(x=mage, y=wksgest, 
+           color=preterm_f)) +
+  geom_point() +
+  ggrepel::geom_label_repel(aes(label=cigdur_f))
+
+
+```
+\column{.5\textwidth}
+```{r, eval=T, echo=F}
+
+library(ggrepel)
+births[sample(1:nrow(births), 10, replace=F), ] %>% 
+  mutate(cigdur_f = factor(cigdur, 
+                           levels=c(0,1),
+                           labels=c("Non-smoker",
+                                    "Smoker"))) %>% 
+  ggplot(data=.,
+       aes(x=mage, y=wksgest, 
+           color=preterm_f)) +
+  geom_point() +
+  ggrepel::geom_label_repel(aes(label=cigdur_f))
+
+```
+\columnsend
+
+# Multiple Plots on a Single Page (1)
+### Set-up
+```{r, echo=T, eval=T}
+
+plotobj1 <- ggplot() + 
+  geom_bar(data=births, aes(x=mage, y=..prop..)) 
+
+plotobj2 <- ggplot() + 
+  geom_point(data=births, 
+             aes(x=mage, y=wksgest, color=raceeth_f), 
+             alpha=0.4) +
+  scale_color_brewer(palette = "Dark2") +
+  theme(legend.position = "bottom")
+
+# could call these with plot like this (if we wanted)
+# plot(plotobj1)
+# plot(plotobj2)
+
+```
+
+# Multiple Plots on a Single Page (2)
+Here we are going to use the `gridExtra` package to put two plots on a single page (and we can format this however we want). 
+   
+   
+    
+\columnsbegin
+\column{.5\textwidth}
+```{r, eval=F, echo=T, size="tiny", fig.height=5, fig.width=4}
+library(gridExtra)
+
+gridExtra::grid.arrange(plotobj1, plotobj2, ncol=2)
+
+```
+\column{.5\textwidth}
+```{r, eval=T, echo=F, fig.height=5, fig.width=4}
+
+library(gridExtra)
+
+gridExtra::grid.arrange(plotobj1, plotobj2, ncol=2)
+
+
+```
+\columnsend
+
+
+# Multiple Plots on a Single Page (3)
+   
+\columnsbegin
+\column{.5\textwidth}
+```{r, eval=F, echo=T, size="tiny", fig.height=5, fig.width=4}
+
+gridExtra::grid.arrange(plotobj1, plotobj2, nrow=2)
+
+```
+\column{.5\textwidth}
+```{r, eval=T, echo=F, fig.height=5, fig.width=6}
+
+
+gridExtra::grid.arrange(plotobj1, plotobj2, nrow=2)
+
+
+```
+\columnsend
+
+# Multiple Plots on a Single Page (4)
+   
+\columnsbegin
+\column{.5\textwidth}
+```{r, eval=F, echo=T, size="tiny", fig.height=5, fig.width=4}
+
+gridExtra::grid.arrange(plotobj1, plotobj2, 
+                        layout_matrix = 
+                          rbind(1,1,2))
+
+rbind(1,1,2) 
+# call this on your own to understand
+
+```
+\column{.5\textwidth}
+```{r, eval=T, echo=F, fig.height=5, fig.width=6}
+
+gridExtra::grid.arrange(plotobj1, plotobj2, 
+                        layout_matrix = 
+                          rbind(1,1,2))
+
+
+```
+\columnsend
+
+
+# Multiple Plots on a Single Page (5)
+`GridExtra` can be much, much more complex and advanced (again, it will let you do anything)! It is a great package. It will even let you plot tables and graphs side-by-side or scaled however you would like. Definitely worth the time-investment. 
+
+# Personal Example with `GridExtra` 
+![](/Users/nickbrazeau/Documents/GitHub/18Fall_EPID799C_RforEpi/nfblectures/figures/gridextra_example.png)\
+
+
+
+# Interactive ggplot using `plotly` (1)    
+```{r, echo=T, eval=F, size="small"}
+library(plotly)
+plotObj <- ggplot(data=births, 
+                  aes(x=mage, y=wksgest, color=preterm_f)) +
+  geom_point()
+plotly::ggplotly(plotObj)
+
+```
+
+# Interactive ggplot using `plotly` (2)
+## Hacks
+You can put non-aesthetics into the aesthetic calls, which will get picked up by the `plotly` labels.    
+   
+    
+    
+```{r, echo=T, eval=F, size="small"}
+library(plotly)
+plotObj <- ggplot(data=births, aes(x=mage, y=wksgest, 
+                                   color=preterm_f,
+                                   cigdur=cigdur,
+                                   pnc5_f=pnc5_f)) +
+  geom_point()
+plotly::ggplotly(plotObj)
+
+```
+Thanks for the hack, [Nick Hathaway](https://github.com/nickjhathaway)
+
+
+# Interactive ggplot using `plotly` (3)
+`plotly` has its own graphics syntax (and functions). Sometimes they are very useful (advanced content), but I usually default to the `plotly::ggplotly(plotObj)` minimum use-case
+
+# Saving Plots
+## ggplot way 
+```{r, eval=F, echo=T, size="small"}
+ggsave(filename=<>, device="png", 
+       height=8, width=11, units="in", res=500)
+# defaults to last plot you made
+```
+
+## base way 
+```{r, eval=F, echo=T, size="small"}
+jpeg(filename = <>, height=8, 
+     width=11, units="in", res=500) # could also use svg or png
+plot(<plotobj>)
+graphics.off()
+```
+
+
+
+
+
+# ggplot Extensions
+This website contains ggplot extentsions in the language we now know: 
+http://www.ggplot2-exts.org/  
+  
+Other items of interest (overlapping):
+
++ Predefined interval geom_ribbon (on top of geom_lines)  
++ Heatmaps (geom_tile or geom_rect)  
++ gganimations  
++ DAGs  
++ PCA   
++ Anatomy (below)   
++ Networks (below)   
++ Chromosome painting  
++ Dendograms  
++ Snakey  
+
+
+# ggridges
+
+\columnsbegin
+\column{.5\textwidth}
+```{r, eval=F, echo=T, size="tiny"}
+library(ggridges)
+ggplot() + 
+  geom_density_ridges_gradient(data=births, 
+                               aes(x=mage, 
+                                   y=raceeth_f, 
+                                   fill=..x..)) +
+  scale_fill_gradientn(colors=c("#fc8d59",
+                                "#ffffbf", "#91cf60"))
+
+
+```
+\column{.5\textwidth}
+```{r, eval=T, echo=F, size="tiny"}
+library(ggridges)
+ggplot() + 
+  geom_density_ridges_gradient(data=births, 
+                               aes(x=mage, y=raceeth_f, fill=..x..)) +
+  scale_fill_gradientn(colors=c("#fc8d59", "#ffffbf", "#91cf60"))
+
+```
+\columnsend
+
+# gganatogram 
+
+\columnsbegin
+\column{.5\textwidth}
+```{r, eval=F, echo=T, size="tiny"}
+# library(devtools)
+devtools::install_github("jespermaag/gganatogram")
+library(gganatogram)
+hgMale <- gganatogram(data=hgMale_key, 
+                      fillOutline='#a6bddb',
+                      organism='human', 
+                      sex='male', fill="colour") + 
+  theme_void()
+hgFemale <- gganatogram(data=hgFemale_key, 
+                        fillOutline='#a6bddb', 
+                        organism='human', 
+                        sex='female', fill="colour") + 
+  theme_void()
+
+gridExtra::grid.arrange(hgMale, hgFemale, ncol=2)
+```
+\column{.5\textwidth}
+```{r, eval=T, echo=F, size="tiny"}
+library(gganatogram)
+hgMale <- gganatogram(data=hgMale_key, 
+                      fillOutline='#a6bddb', organism='human', 
+                      sex='male', fill="colour") + 
+  theme_void()
+hgFemale <- gganatogram(data=hgFemale_key,
+                        fillOutline='#a6bddb', organism='human', 
+                        sex='female', fill="colour") + 
+  theme_void()
+
+gridExtra::grid.arrange(hgMale, hgFemale, ncol=2)
+
+```
+Thank you, [Maag J](https://github.com/jespermaag/gganatogram)
+\columnsend
+
+# Networks with tidygraph
+Networks typically depend on a distance-metric (i.e. edges)
+\columnsbegin
+\column{.5\textwidth}
+```{r, eval=F, echo=T, size="tiny"}
+# library(devtools)
+devtools::install_github("thomasp85/tidygraph")
+library(tidygraph)
+library(ggraph)
+# dab is a distance 
+ggraph(<data>) +
+  geom_edge_fan(aes(width=<distance>), 
+                colour = "#d9d9d9", alpha=0.8) +
+  scale_edge_width(range = c(0.8, 1.5)) +
+  geom_node_point(aes(color = name, size=2.5)) +
+  geom_node_text(aes(label = name), 
+                 size = 2, repel = TRUE) +
+  theme_graph() +
+  theme(legend.position = "none")
+```
+\column{.5\textwidth}
+![](/Users/nickbrazeau/Documents/GitHub/18Fall_EPID799C_RforEpi/nfblectures/figures/networkexamples.png)\  
+\columnsend

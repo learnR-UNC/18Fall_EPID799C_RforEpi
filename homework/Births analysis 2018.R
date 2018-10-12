@@ -1,6 +1,6 @@
 # __Start Homework 1 ####
 #............................
-# Births 2012 Analysis for EPID 799C: PNC decrease PT birth? 
+# Births 2012 Analysis for EPID 799C: PNC decrease PT birth? ####
 # Mike Dolan Fliss, August 2017
 # Aim: Does early prenatal care (<month 5) decrease the risk of preterm (<week 37) birth?
 # (This Descriptive header is HW1.Q1a)
@@ -10,7 +10,7 @@
 #............................
 
 #............................
-# Libraries, directories, load data (HW1.Q1f) 
+# Libraries, directories, load data (HW1.Q1f) ####
 #............................
 # NOTE: May need to install these packages in advance on your local machine.
 # install.packages("tableone")
@@ -18,15 +18,16 @@ library(tidyverse) # for ggplot, dplyr in HW1-4 (<- example of a post-line code 
 library(lubridate) # for dates in HW2
 library(tableone) # used in HW2
 # Set directories. 
+# Mike's home dir: setwd("D:/User/Dropbox (Personal)/Education/Classes/18Fall_EPID799C_RforEpi/")
 data_dir = paste0(getwd(), "/data")
-output_dir = paste0(getwd(), "/data")
-# map_dir = paste0(data_dir, "/GIS") # used later
+output_dir = paste0(getwd(), "/data/output")
+map_dir = paste0(data_dir, "/data/maps") # used later
 # Note you'll need to set different ones with setwd()! Since we're building this as a github repo the wd defaults to script dir.
 # More on git here: http://r-bio.github.io/intro-git-rstudio/ . There's also a datacamp on it.
 #............................
 
 #............................
-# Read data (HW1.Q2) 
+# Read data (HW1.Q2) ####
 #............................
 births = read.csv("data/births2012.csv", stringsAsFactors = F) # (HW1.Q2a)
 head(births) # (HW1.Q2b)
@@ -40,7 +41,7 @@ names(births) = tolower(names(births)) #drop names to lowercase
 
 
 # ......................................
-# Exploring Data - (HW1Q3 & HW1Q4) 
+# Exploring Data - (HW1Q3 & HW1Q4) ####
 # ......................................
 dim(births) # (HW1.Q3b) 
 summary(births[,c("wksgest", "mdif")]) # (HW1.Q3c) 
@@ -60,7 +61,7 @@ GGally::ggpairs(births_sample) # later I'll demo how to use color here after som
 
 
 # ......................................
-# Recode Variables: Exposure, Outcome & Covariates (HW1.Q5) 
+# Recode Variables: Exposure, Outcome & Covariates (HW1.Q5) ####
 # ......................................
 ## (HW1.Q5) 
 ### A. Prenatal Care (Exposure) 
@@ -92,14 +93,14 @@ table(births$mdif, births$pnc5_f, useNA = "always")
 hist(births$wksgest) #quick look
 #### ii
 births$preterm <- ifelse(births$wksgest >= 20 &births$wksgest < 37, 1,
-                                     ifelse(births$wksgest >= 37 & births$wksgest < 99, 0, NA)
-                        )
+                         ifelse(births$wksgest >= 37 & births$wksgest < 99, 0, NA)
+)
 
 #### iii
 births$preterm_f <- factor(births$preterm, levels=c(0,1), labels=c("term", "preterm"))
 
 #### iv
-births$preterm_f <- cut(births$wksgest, breaks = c(0,19,36,99), labels =  c("too young", "preterm", "term")) #should be no births too young at this point
+births$preterm_f <- cut(births$wksgest, breaks = c(0,36,99), labels =  c("preterm", "term"))
 
 # (HW1.Q5 continued) 
 ### C. Plurality (covariate) 
@@ -132,7 +133,7 @@ summary(births$mage)
 #### i
 table(births$cigdur, useNA = "always") # check to see what values are in cigdur
 births$cigdur <- ifelse(births$cigdur == "Y", 1, 
-                     ifelse(births$cigdur == "N", 0, NA)) # NA for when case is U - i.e. unknown
+                        ifelse(births$cigdur == "N", 0, NA)) # NA for when case is U - i.e. unknown
 
 #### ii
 births$smoker_f <- factor(births$cigdur, levels=c(0,1), labels=c("Non-smoker", "Smoker"))
@@ -187,21 +188,21 @@ table(births$mrace, births$methnic, births$raceeth_f, useNA = "always") # looks 
 # ......................................
 
 # ......................................
-# Optional data exploration (HW1.Q6) 
+# Optional data exploration (HW1.Q6) ####
 # ......................................
 
 # (HW1.Q6) 
 ## A
-CreateTableOne(vars = c("preterm_f"), 
-               strata = c("mage", "pnc5_f", "smoker_f", "sex_f"),
+CreateTableOne(vars = c("mage", "pnc5_f", "smoker_f", "sex_f"),
+               strata = c("preterm_f"), 
                data = births)
 
 ## B
 mice::md.pattern(births)
 
 ## C
-ggplot2:ggpairs(data = births[1:1000, c("pnc5_f", "preterm_f")],
-        title="Exposure versue Outcome for First 1,000 Obserations")
+GGally::ggpairs(data = births[1:1000, c("pnc5_f", "preterm_f")],
+                title="Exposure versue Outcome for First 1,000 Obserations")
 # ......................................
 
 # ......................................
@@ -210,7 +211,7 @@ ggplot2:ggpairs(data = births[1:1000, c("pnc5_f", "preterm_f")],
 
 
 # ......................................
-# Eligibility criteria & core recoding  (HW2 part 1)
+# Eligibility criteria & core recoding  (HW2 part 1) ####
 # ......................................
 # Create many inclusion variables, all of which have to be =1 to be included.
 births$weeknum = week(births$dob_d) #thanks, lubridate! (HW2.1.Q1)
@@ -226,39 +227,40 @@ births$incl_singleton = as.numeric(births$plur == 1) #(HW2.Q2e)
 # births$incl_hasnumdata = as.numeric(births$plur != 9) #not bothering to recode is ok. Isn't this one redundant with above?
 # e. no congential anomalies - Let's use apply for efficiency
 congen_anom = c("anen","mnsb","cchd", "cdh", "omph","gast", "limb", "cl","cp","dowt","cdit", "hypo") #(HW2.1.Q3a)
-  # below is just a useful aside to check that there is No "U" (i.e. none missing) before running the code to make the new variable
-  births$incl_hasanomdata = as.numeric(apply(births[,congen_anom]!="U", FUN=all, 1)) #All not missing = not any missing
+# below is just a useful aside to check that there is No "U" (i.e. none missing) before running the code to make the new variable
+births$incl_hasanomdata = as.numeric(apply(births[,congen_anom]!="U", FUN=all, 1)) #All not missing = not any missing
 births$incl_noanomalies = as.numeric(apply(births[,congen_anom]=="N", FUN=all, 1)) #All not present #(HW2.1.Q3b)
-
-
-old_births <- births #(HW2.1.Q4a)
 
 # Below is the example grepl (HW2.1.Q4b)
 grepl("a", c("banana", "peach", "ornge")) 
-
 eligibility_drops = nrow(births) - apply(births[,grepl("incl_", names(births))], FUN=sum, MARGIN = 2, na.rm=T) #(HW2.1.Q4c optional)
 eligibility_drops #(HW2.1.Q4c optional)
 
 births$include_allpass = apply(births[, grepl("incl_", names(births))], FUN=all, MARGIN = 1) #(HW2.1.Q4d indicator for the inclusion criteria yes/no)
+old_births <- births #(HW2.1.Q4a)
 
 births = births[births$include_allpass, ] #(HW2.1.Q4e now apply the inclusion criteria to subset your births data set)
-  # to see what warnings are being thrown you can type warnings() -- below:  
-  warnings() # Just letting me know I'm casting those 1s as TRUEs. That's ok.
+# to see what warnings are being thrown you can type warnings() -- below:  
+warnings() # Just letting me know I'm casting those 1s as TRUEs. That's ok.
 
 dim(old_births) #(HW2.1.Q4f)
 dim(births) #(HW2.1.Q4f)
-
 
 #(HW2.1.Q5 Optional Challenge)
 # Results of exclusion
 cat("Leaving eligibility checks with n =", formatC(nrow(births), big.mark = ","), 
     "births of original", formatC(nrow(old_births), big.mark = ",")) #(HW2.1.Q4d)
 names(births)
-vars_of_interest = c("pnc5_f", "preterm_f", "smoker_f", "wksgest", "sex", "meduc", "raceeth_f", "weeknum", "include_allpass")
+vars_of_interest = c("pnc5_f", "preterm_f", "smoker_f", "wksgest", "sex", "meduc", "mage", "raceeth_f", "weeknum", "include_allpass")
 tableone::CreateTableOne(data=births[, vars_of_interest]) #(HW2.1.Q5)
 tableone::CreateTableOne(data=old_births[, vars_of_interest], strata="include_allpass")
+
+# Save a smaller version for future loading
+vars_to_save = c(vars_of_interest, "cores", "kotel")
+births_sm = births[, vars_to_save] 
+save("births_sm", file = "births_sm.rdata") 
 # ......................................
-# NOTES: Finishes with 62,370 of 122,513 
+# Finishes with 62,370 of 122,513 ####
 # ......................................
 
 # ......................................

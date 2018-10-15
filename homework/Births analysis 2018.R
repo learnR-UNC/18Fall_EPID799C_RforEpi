@@ -543,6 +543,8 @@ levels(births$preterm_f) # If levels are backwards you'll need something like th
 births$preterm_f = relevel(births$preterm_f, ref = "term")
 levels(births$pnc5_f) # Looking good
 m_crude_rd = glm(data=births, preterm_f ~ pnc5_f, family=binomial(link="identity"))
+levels(births$raceeth_f)
+births$raceeth_f = relevel(births$raceeth_f, ref = "White non-Hispanic")
 
 # (HW4.2.Q6) Model object structure
 str(m_crude_rd) #It's huge!
@@ -705,23 +707,27 @@ contrasts(births$raceeth_f) # Let's look: contrast matrix
 #..........................................
 
 # Contrasts using contrast package
+# install.packages("contrast")
 library(contrast)
+map(births, levels)
 contrast(mfull_emm_rd, # demo one-level
-         a=list(pnc5_f = "PNC starts in first 5 mo", raceeth_f = "AA", smoker_f = "Non smoker", mage=0, mage_sq=0),
-         b=list(pnc5_f = "No PNC before 5 mo", raceeth_f = "AA", smoker_f="Non smoker", mage=0, mage_sq=0))
+         a=list(pnc5_f = "Early PNC", raceeth_f = "African American", smoker_f = "Non-smoker", mage=0, mage_sq=0),
+         b=list(pnc5_f = "No Early PNC", raceeth_f = "African American", smoker_f="Non-smoker", mage=0, mage_sq=0))
 
 raceeth_diff = contrast(mfull_emm_rd,
-                        a=list(pnc5_f = "PNC starts in first 5 mo", raceeth_f = levels(births$raceeth_f), smoker_f="Non smoker", mage=0, mage_sq=0),
-                        b=list(pnc5_f = "No PNC before 5 mo", raceeth_f = levels(births$raceeth_f), smoker_f="Non smoker", mage=0, mage_sq=0))
-
+                        a=list(pnc5_f = "Early PNC", raceeth_f = levels(births$raceeth_f), smoker_f="Non-smoker", mage=0, mage_sq=0),
+                        b=list(pnc5_f = "No Early PNC", raceeth_f = levels(births$raceeth_f), smoker_f="Non-smoker", mage=0, mage_sq=0))
 print(raceeth_diff, X=T)
 str(raceeth_diff)
+
 EMM_df = data.frame(model=paste0("M5: ", raceeth_diff$raceeth_f),
                     estimate=raceeth_diff$Contrast, std.error = raceeth_diff$SE,
-                    X2.5..=raceeth_diff$Lower, X97.5..=raceeth_diff$Upper, stringsAsFactors = F)
+                    conf.low=raceeth_diff$Lower, conf.high=raceeth_diff$Upper, stringsAsFactors = F)
 EMM_df
-ggplot(bind_rows(model_results,EMM_df), aes(model, estimate,color=estimate, fill=estimate))+
-  geom_linerange(aes(ymin=X2.5.., ymax=X97.5..), size=1)+
+results_df
+
+ggplot(bind_rows(results_df,EMM_df), aes(model, estimate,color=estimate, fill=estimate))+
+  geom_linerange(aes(ymin=conf.low, ymax=conf.high), size=1)+
   geom_point(shape=15, size=4, color="white")+ geom_point(shape=15)+
   scale_y_continuous(limits=c(NA,NA), breaks=seq(-0.15, 0.05, 0.01))+
   geom_hline(yintercept = 0, lty=2, color="grey")+

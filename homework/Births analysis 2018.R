@@ -17,7 +17,7 @@
 library(tidyverse) # for ggplot, dplyr in HW1-4 (<- example of a post-line code comment, HW1.Q1c)
 library(lubridate) # for dates in HW2
 library(tableone) # used in HW2
-# Set directories. 
+# Set directories.
 # Mike's home dir: setwd("D:/User/Dropbox (Personal)/Education/Classes/18Fall_EPID799C_RforEpi/")
 data_dir = paste0(getwd(), "/data")
 output_dir = paste0(getwd(), "/data/output")
@@ -35,7 +35,7 @@ head(births) # (HW1.Q2b)
 
 names(births) = tolower(names(births)) #drop names to lowercase
 #..................................................
-# (HW1.Q3) Notice all these nice blocks?  I like to 
+# (HW1.Q3) Notice all these nice blocks?  I like to
 # have a header at the top, and block comments at the bottom.
 #..................................................
 
@@ -43,13 +43,13 @@ names(births) = tolower(names(births)) #drop names to lowercase
 # ......................................
 # Exploring Data - (HW1Q3 & HW1Q4) ####
 # ......................................
-dim(births) # (HW1.Q3b) 
-summary(births[,c("wksgest", "mdif")]) # (HW1.Q3c) 
-str(births[,c("mage", "wksgest", "mdif")]) # (HW1.Q3d) 
-class(births$mage); class(births$wksgest); class(births$mdif) 
+dim(births) # (HW1.Q3b)
+summary(births[,c("wksgest", "mdif")]) # (HW1.Q3c)
+str(births[,c("mage", "wksgest", "mdif")]) # (HW1.Q3d)
+class(births$mage); class(births$wksgest); class(births$mdif)
 str(births$mage); str(births$wksgest); str(births$mdif)
 
-## (HW1.Q4) 
+## (HW1.Q4)
 births_sample = births[1:1000, c("mage", "mdif", "visits", "wksgest", "mrace")] #A
 plot(births_sample) #B
 
@@ -63,22 +63,22 @@ GGally::ggpairs(births_sample) # later I'll demo how to use color here after som
 # ......................................
 # Recode Variables: Exposure, Outcome & Covariates (HW1.Q5) ####
 # ......................................
-## (HW1.Q5) 
-### A. Prenatal Care (Exposure) 
+## (HW1.Q5)
+### A. Prenatal Care (Exposure)
 #### i
-table(births$mdif, useNA = "always") 
+table(births$mdif, useNA = "always")
 
 #### ii
 # See data dictionary, but 88 means no early prenatal care and 99 means missing
 
 #### iii
-births$mdif[births$mdif==99] <- NA 
+births$mdif[births$mdif==99] <- NA
 
 #### iv
 boxplot(births$mdif[births$mdif != 88], main="Month Prenatal Care Began, \n Excluding Unkowns and No Prenatal Care")
 
 #### v
-births$pnc5 <- ifelse(births$mdif <= 5, 1, 0) 
+births$pnc5 <- ifelse(births$mdif <= 5, 1, 0)
 
 #### vi
 births$pnc5_f <- factor(births$pnc5, levels=c(0,1), labels=c("No Early PNC", "Early PNC"))
@@ -87,8 +87,8 @@ births$pnc5_f <- factor(births$pnc5, levels=c(0,1), labels=c("No Early PNC", "Ea
 table(births$mdif, births$pnc5_f, useNA = "always")
 
 
-# (HW1.Q5 continued) 
-### B. Preterm Birth (Outcome) 
+# (HW1.Q5 continued)
+### B. Preterm Birth (Outcome)
 #### i
 hist(births$wksgest) #quick look
 #### ii
@@ -102,21 +102,21 @@ births$preterm_f <- factor(births$preterm, levels=c(0,1), labels=c("term", "pret
 #### iv
 births$preterm_f <- cut(births$wksgest, breaks = c(0,36,99), labels =  c("preterm", "term"))
 
-# (HW1.Q5 continued) 
-### C. Plurality (covariate) 
+# (HW1.Q5 continued)
+### C. Plurality (covariate)
 #### i
 table(births$plur, useNA = "always") # looks fine, no 9 values for unknown
 
-# (HW1.Q5 continued) 
-### D. Maternal Age (covariate) 
+# (HW1.Q5 continued)
+### D. Maternal Age (covariate)
 #### i
-table(births$mage, useNA = "always") 
+table(births$mage, useNA = "always")
 
 #### ii
 # See data dictionary, but 99 means misssing
 
 #### iii
-births$mage[births$mage==99] <- NA 
+births$mage[births$mage==99] <- NA
 
 #### iv
 par(mfrow=c(1,2))
@@ -128,11 +128,11 @@ births$mage_centered <- births$mage - mean(births$mage, na.rm = T)
 hist(births$mage) # looks to be expected
 summary(births$mage)
 
-# (HW1.Q5 continued) 
-### E. Cigarette Use (covariate) 
+# (HW1.Q5 continued)
+### E. Cigarette Use (covariate)
 #### i
 table(births$cigdur, useNA = "always") # check to see what values are in cigdur
-births$cigdur <- ifelse(births$cigdur == "Y", 1, 
+births$cigdur <- ifelse(births$cigdur == "Y", 1,
                         ifelse(births$cigdur == "N", 0, NA)) # NA for when case is U - i.e. unknown
 
 #### ii
@@ -142,30 +142,30 @@ births$smoker_f <- factor(births$cigdur, levels=c(0,1), labels=c("Non-smoker", "
 table(births$cigdur, births$smoker_f, useNA = "always")
 
 
-# (HW1.Q5 continued) 
-### F. Date of Birth (covariate) 
+# (HW1.Q5 continued)
+### F. Date of Birth (covariate)
 #### i
 # https://github.com/tidyverse/lubridate
 #### ii
 ?lubridate
-vignette("lubridate") 
+vignette("lubridate")
 
 #### iii
-library(lubridate) # normally this would go at the top of the script under a packages chunk 
+library(lubridate) # normally this would go at the top of the script under a packages chunk
 
 #### iv
 births$dob_d <- lubridate::ymd(births$dob)
 
-# (HW1.Q5 continued) 
-### G. Sex (covariate) 
+# (HW1.Q5 continued)
+### G. Sex (covariate)
 #### i
 table(births$sex, useNA = "always") # check what initial values are
 births$sex[births$sex==9] <- NA
 births$sex_f <- factor(births$sex, levels=c(1,2), labels=c("Male", "Female"))
 table(births$sex_f, births$sex, useNA="always")
 
-# (HW1.Q5 continued) 
-### G. Maternal Race/Ethnicity (covariate) 
+# (HW1.Q5 continued)
+### G. Maternal Race/Ethnicity (covariate)
 #### i
 table(births$mrace, births$methnic, useNA = "always") # check what initial values are
 
@@ -174,11 +174,11 @@ mergedf <- data.frame(
   mrace = c(sort(rep(seq(1,4),3))),
   methnic = as.character(rep(c("Y", "N", "U"), 4)),
   raceeth_f =factor(c("White Hispanic", "White non-Hispanic", "Other",
-                      rep("African American", 3), 
+                      rep("African American", 3),
                       rep("American Indian or Alaska Native", 3),
                       rep("Other", 3)
   )
-  ), 
+  ),
   stringsAsFactors = F)
 
 births <- merge(x=births, y=mergedf, by=c("mrace", "methnic"))
@@ -191,10 +191,10 @@ table(births$mrace, births$methnic, births$raceeth_f, useNA = "always") # looks 
 # Optional data exploration (HW1.Q6) ####
 # ......................................
 
-# (HW1.Q6) 
+# (HW1.Q6)
 ## A
 CreateTableOne(vars = c("mage", "pnc5_f", "smoker_f", "sex_f"),
-               strata = c("preterm_f"), 
+               strata = c("preterm_f"),
                data = births)
 
 ## B
@@ -232,7 +232,7 @@ births$incl_hasanomdata = as.numeric(apply(births[,congen_anom]!="U", FUN=all, 1
 births$incl_noanomalies = as.numeric(apply(births[,congen_anom]=="N", FUN=all, 1)) #All not present #(HW2.1.Q3b)
 
 # Below is the example grepl (HW2.1.Q4b)
-grepl("a", c("banana", "peach", "ornge")) 
+grepl("a", c("banana", "peach", "ornge"))
 eligibility_drops = nrow(births) - apply(births[,grepl("incl_", names(births))], FUN=sum, MARGIN = 2, na.rm=T) #(HW2.1.Q4c optional)
 eligibility_drops #(HW2.1.Q4c optional)
 
@@ -240,7 +240,7 @@ births$include_allpass = apply(births[, grepl("incl_", names(births))], FUN=all,
 old_births <- births #(HW2.1.Q4a)
 
 births = births[births$include_allpass, ] #(HW2.1.Q4e now apply the inclusion criteria to subset your births data set)
-# to see what warnings are being thrown you can type warnings() -- below:  
+# to see what warnings are being thrown you can type warnings() -- below:
 warnings() # Just letting me know I'm casting those 1s as TRUEs. That's ok.
 
 dim(old_births) #(HW2.1.Q4f)
@@ -248,7 +248,7 @@ dim(births) #(HW2.1.Q4f)
 
 #(HW2.1.Q5 Optional Challenge)
 # Results of exclusion
-cat("Leaving eligibility checks with n =", formatC(nrow(births), big.mark = ","), 
+cat("Leaving eligibility checks with n =", formatC(nrow(births), big.mark = ","),
     "births of original", formatC(nrow(old_births), big.mark = ",")) #(HW2.1.Q4d)
 names(births)
 vars_of_interest = c("pnc5_f", "preterm_f", "smoker_f", "wksgest", "sex", "meduc", "mage", "raceeth_f", "weeknum", "include_allpass")
@@ -257,8 +257,8 @@ tableone::CreateTableOne(data=old_births[, vars_of_interest], strata="include_al
 
 # Save a smaller version for future loading
 vars_to_save = c(vars_of_interest, "cores", "kotel")
-births_sm = births[, vars_to_save] 
-save("births_sm", file = "births_sm.rdata") 
+births_sm = births[, vars_to_save]
+save("births_sm", file = "births_sm.rdata")
 # ......................................
 # Finishes with 62,370 of 122,513 ####
 # ......................................
@@ -268,354 +268,407 @@ save("births_sm", file = "births_sm.rdata")
 # ......................................
 
 # ......................................
-# Explore data (HW3 part 1)
+# Explore data (HW3 part 1) ####
 # ......................................
-#(HW3.1.Q1A) Graph weeks
-npop = formatC(sum(!is.na(births$wksgest)), big.mark=',') #(HW3.1.Q1a)
+#(HW2.2.Q6A) Graph weeks
+npop = formatC(sum(!is.na(births$wksgest)), big.mark=',') #(HW2.2.Q6a)
 ggplot(data=births, aes(x=wksgest, y=..prop..))+geom_bar() + #Does what you need, as does geom_histogram()
-  labs(title="Figure 1: Proportional distribution of gestational age at birth", 
-       subtitle=paste0("From ", npop, " births in NC in 2012 from the NC SCHS, posted at Odum Institute"), 
-       x="Weeks of gestation", y="Proportion of population") + 
+  labs(title="Figure 1: Proportional distribution of gestational age at birth",
+       subtitle=paste0("From ", npop, " births in NC in 2012 from the NC SCHS, posted at Odum Institute"),
+       x="Weeks of gestation", y="Proportion of population") +
   theme_bw()
 
+#A2.1 : Working with weeknum. - should double check this. Just used %V above.
+hist(births$weeknum, breaks = min(births$weeknum):max(births$weeknum)) # Looks weird
 
-
-  #(HW3.1.Q1a): Working with weeknum. - should double check this. Just used %V above.
-  hist(births$weeknum, breaks = min(births$weeknum):max(births$weeknum)) # Looks weird
-
-#(HW3.1.Q1B) : Graph weeknum 
+#(HW2.2.Q6B) : Graph weeknum
 ggplot(births, aes(x=weeknum, y=..prop..)) + geom_bar() +
-  labs(title="Throwaway: Investigating Weeknum", 
-       subtitle="Note to self : Weeknum needs some work, doesn't quite match SAS", 
+  labs(title="Throwaway: Investigating Weeknum",
+       subtitle="Weeknum counts drop off at start and end of year",
        x="Week number of birth", y="Proportion of population") +
   theme_bw()
 
-#(HW3.1.Q1C) weeks vs. weeknum 
-ggplot(births, aes(x=wksgest, y=weeknum)) + 
+# Graph: wksgest vs. weeknum: jitter (HW3.Q6c) ####
+ggplot(births, aes(x=wksgest, y=weeknum)) +
   geom_jitter(width=1, height=1, pch=".", alpha=0.3)+
-  labs(title="Throwaway: week vs. weeknum", 
-       subtitle="Note to self: Does this match what we expect given the inclusion criteria?", 
+  labs(title="Throwaway: week vs. weeknum",
+       subtitle="Note to self: Does this match what we expect given the inclusion criteria?",
        x="weeks of gestation", y="week number of birth in year")+
   theme_bw()
 
 
-#(HW3.1.Q1D)
-# Note here that you can ggplot objects that are "appendable" 
-# which is to say you can add on new features by adding on LAYERS 
-plotObj <- ggplot(births, aes(x=wksgest, y=weeknum)) + 
+# Graph: wksgest vs. weeknum bin2d HW3.2.Q6D)  ####
+# Note here that you can ggplot objects that are "appendable"
+# which is to say you can add on new features by adding on LAYERS
+plotObj <- ggplot(births, aes(x=wksgest, y=weeknum)) +
   geom_jitter(width=1, height=1, pch=".", alpha=0.3)+
-  labs(title="Throwaway: week vs. weeknum", 
-       subtitle="Note to self: Does this match what we expect given the inclusion criteria?", 
+  labs(title="Throwaway: week vs. weeknum",
+       subtitle="Note to self: Does this match what we expect given the inclusion criteria?",
        x="weeks of gestation", y="week number of birth in year")+
   theme_bw()
-
 plot(plotObj)
-
 ## append new feature
 plotObj + geom_bin2d(binwidth=1, alpha=0.8)
 
-
-
-
-
-#(HW3.1.Q1E)
-require("ggridges")
-ggplot() + 
-  geom_density_ridges_gradient(data=births, aes(x=mage, y=factor(cut(wksgest, 10)), fill=..x..)) + 
-  scale_fill_gradientn(colors=c("#fc8d59", "#ffffbf", "#91cf60")) + 
+# (HW3.2.Q6D) ggridges
+library("ggridges")
+ggplot() +
+  geom_density_ridges_gradient(data=births, aes(x=mage, y=factor(cut(wksgest, 10)), fill=..x..)) +
+  scale_fill_gradientn(colors=c("#fc8d59", "#ffffbf", "#91cf60")) +
   facet_grid(meduc~raceeth_f) +
-  ggtitle("Distribution of Weeks Gestation by Birth Outcome") + 
-  labs(subtitle="This is the continuous variable we dichotomized") + 
-  ylab("Weeks of Gestations factorized") + xlab("mage") + 
+  ggtitle("Distribution of Weeks Gestation by Birth Outcome") +
+  labs(subtitle="This is the continuous variable we dichotomized") +
+  ylab("Weeks of Gestations factorized") + xlab("mage") +
   theme_bw()
 
-
-
-
 # ......................................
-# Functional Form of maternal age w/ dplyr and ggplot2 #(HW3 part 2)
+# Functional Form of maternal age w/ dplyr and ggplot2 #(HW3 part 1) ####
 # ......................................
 
-mage_df = births %>% group_by(mage) %>% #(HW3.2.2) setup 
-  summarize(n=n(), 
+mage_df = births %>% group_by(mage) %>% #(HW3.1.1) setup
+  summarize(n=n(),
             pct_earlyPNC = mean(pnc5, na.rm=T),
             pct_preterm = mean(preterm, na.rm=T))
-head(mage_df) #(HW3.2.2) answer 
+head(mage_df) #(HW3.1) answer
 
-#(HW3.2.3A)  
-ggplot(mage_df, aes(mage, pct_preterm))+ 
+# Graph: Mage x % Preterm (HW3.1.2A)  ####
+ggplot(mage_df, aes(mage, pct_preterm))+
   geom_point(aes(size=n))+
   geom_smooth(aes(weight=n), color="blue", method="loess")+
-  labs(title="% Preterm vs. Maternal Age", 
-       x="maternal age", y="% preterm", 
-       subtitle="Investigating function form of maternal age", 
-       caption="Note for future glms: Seems quadratic. Blue is loess, red is square linear.")
+  labs(title="% Preterm vs. Maternal Age",
+       x="maternal age", y="% preterm",
+       subtitle="Investigating function form of maternal age",
+       caption="Note for future glms: Seems quadratic. Blue is loess.")
 
-#(HW3.2.3B)  Optional Challenge  
-ggplot(mage_df, aes(mage, pct_preterm)) + 
+# Graph: Mage x % Preterm v2 (HW3.1.2B) ####
+ggplot(mage_df, aes(mage, pct_preterm)) +
   geom_point(aes(size=n)) +
   geom_smooth(aes(weight=n), color="blue") +
   geom_smooth(aes(weight=n), method="lm", formula=y ~ poly(x, 2), color="red", lty=2) + # this is the square error term
-  labs(title="% Preterm vs. Maternal Age", 
-       x="maternal age", y="% preterm", 
-       subtitle="Investigating function form of maternal age", 
+  labs(title="% Preterm vs. Maternal Age",
+       x="maternal age", y="% preterm",
+       subtitle="Investigating function form of maternal age",
        caption="Note for future glms: Seems quadratic. Blue is loess, red is square linear.")
 
-
-
-
+# In the future, let's add some splines (e.g. restricted cubic)
 # ......................................
 
 
 # ......................................
-# County specific stories w/ dplyr and ggplot2 #(HW3 part 3)
+# HW3.3: County stories ####
 # ......................................
-#(HW3.3.4A) 
-format_helper = read.csv("data/birth-format-helper-2012.csv", stringsAsFactors = F)
-#(HW3.3.4A.i) 
+
+# ......................................
+# County specific stories w/ dplyr and ggplot2
+# ......................................
+#(HW3.3.4A)
+format_helper = read.csv("data/R for epi 2018 data pack/birth-format-helper-2012.csv", stringsAsFactors = F)
+#(HW3.3.4A.i)
 county_data = format_helper[format_helper$variable == "cores",] #base R way
-#(HW3.3.4A.ii) 
+#(HW3.2.4A.ii)
 names(county_data) = c("variable", "cores", "county_name", "FIPS")
-#(HW3.3.4A.iii) 
+#(HW3.2.4A.iii)
 county_data$var = NULL #drop in base R. There are other ways...
-#(HW3.3.4A.iv) 
+#(HW3.2.4A.iv)
 county_data$cores = as.numeric(county_data$cores)
 str(county_data$cores)
 
-#(HW3.3.4B) same results as above but now using "tidy" methods and more human readable 
-county_data = format_helper %>% 
+#(HW3.2.4B) same results as above but now using "tidy" methods and more human readable
+county_data = format_helper %>%
   filter(variable == "cores") %>%
-  rename(cores=code, county_name=recode, FIPS=helper) %>% 
+  rename(cores=code, county_name=recode, FIPS=helper) %>%
   select(-variable) %>%
   mutate(cores = as.numeric(cores))
 
-#(HW3.3.4C)
-# Load tier data 
-# https://www.nccommerce.com/research-publications/incentive-reports/county-tier-designations 
-county_tiers = read.csv("data/county_tiers.csv", stringsAsFactors = F) # shell.exec("county_tiers.csv")
-#(HW3.3.4C.i)
+#(HW3.2.4C)
+# Load tier data
+# https://www.nccommerce.com/research-publications/incentive-reports/county-tier-designations
+county_tiers = read.csv("data/R for epi 2018 data pack/maps/county_tiers.csv", stringsAsFactors = F) # shell.exec("county_tiers.csv")
+#(HW3.2.4C.i)
 str(county_tiers$econ_tier)
-#(HW3.3.4C.ii)
+#(HW3.2.4C.ii)
 county_tiers$econ_tier = ordered(county_tiers$econ_tier)
 
-#(HW3.3.4D)
+#(HW3.2.4D)
 county_df = births %>% group_by(cores) %>%
-  summarize(n=n(), 
+  summarize(n=n(),
             pct_earlyPNC = mean(pnc5, na.rm=T),
             pct_preterm = mean(preterm, na.rm=T)) %>%
-  left_join(county_data) %>% 
+  left_join(county_data) %>%
   left_join(county_tiers)
 head(county_df) #(HW3.2.3D) output
 
 
-#(HW3.3.4E) write this out to your local directory
+#(HW3.2.4E) write this out to your local directory
 write.csv(x=county_df, "data/county_birth_summary.csv", row.names = F, quote = F)
 
 
-#(HW3.3.5)
+#(HW3.2.5)
 # Create a plot with ggplot
 plotObj <- ggplot(county_df, aes(x=pct_earlyPNC, y=pct_preterm, color=econ_tier))+
   geom_point(aes(size=n))+geom_text(aes(label=county_name), nudge_y=.01, alpha=0.5)+
   geom_smooth(se=F)
 plot(plotObj)
-#(HW3.3.5a)
+#(HW3.2.5a)
 plotly::ggplotly(plotObj)
 
-
-#(HW3.3.6A)
+#(HW3.2.6A)
 county_name_ord = factor(county_df$county_name, county_df$county_name[order(county_df$pct_earlyPNC)], ordered=T)
 
-#(HW3.3.6B)
-county_df <- county_df %>% 
+#(HW3.2.6B)
+county_df <- county_df %>%
   mutate(county_name_ord = county_name_ord) %>%
-  gather(key=variable, value=value, n, pct_earlyPNC, pct_preterm) %>% 
+  gather(key=variable, value=value, n, pct_earlyPNC, pct_preterm) %>%
   head()
-#(HW3.3.6C)
-county_df %>% 
-ggplot(aes(county_name_ord, value, fill=econ_tier)) + 
-  geom_col() + 
-  coord_flip() + 
+#(HW3.2.6C)
+county_df %>%
+  ggplot(aes(county_name_ord, value, fill=econ_tier)) +
+  geom_col() +
+  coord_flip() +
   facet_wrap(~variable, scales = "free_x")
-
-
-## end of homework 3
 
 # ......................................
 # __End Homework 3 /  Start Homework 4 ####
 # ......................................
 
-
-
-
-
-
-
-
-
-# ......................................
-# __PARKINGLOT ####
-# ......................................
-
-
-
-
-
-
-# ......................................
-
-# ......................................
-# D Missing data summary 
-# ......................................
-# See above for CreateTableOne, includeNAs = T
-# install.packages("mice")
-library(mice) #A multiple imputation package
-md.pattern(births) #which variables matter here?
-CreateTableOne(data=births[,c("pnc5", "race_f", "smoker","sex", "preterm_f")], strata=c("preterm_f"),
-               includeNA = T, argsNonNormal = c("weeks"))
-# https://github.com/kaz-yos/tableone/issues/22#issuecomment-320535295
-# weeks, prenatal, race, hispmom, cigdur, sex, mage, idnum, weeknum
-# See VIM package, missing by map, etc.
-# http://www.analyticsvidhya.com/blog/2016/03/tutorial-powerful-packages-imputing-missing-values/
-
-
-# ......................................
-# Graphs
-# ......................................
-county_data = births %>% 
-  group_by(cores) %>%
-  summarise(n = n(), preterm=sum(preterm, na.rm=T), pnc5=sum(pnc5, na.rm=T)) %>%
-  mutate(pct_pnc5 = pnc5/n*100, pct_preterm=preterm/n*100)
-
-county_data = merge(formatter[formatter$variable == "cores",] %>% mutate(code = as.numeric(code)), 
-                    county_data, by.x="code", by.y="cores") %>% rename(name=recode)
-
-head(county_data)
-ggplot(county_data, aes(pct_pnc5, pct_preterm, size=n, weight=n, label=name))+
-  geom_point(aes(color=name))+geom_smooth(se=T, show.legend = F)+geom_text(aes(color=name), nudge_y = .5)+
-  labs(title="% Preterm Birth vs. % Recieving Early Prenatal Care", x="% Early PNC", y="% Preterm Birth")+
-  guides(color=F)
-
-library(plotly); ggplotly()         
-ggplot2::last_plot() + scale_x_continuous(limits=c(85,95))+scale_y_continuous(limits=c(5,15))
-# a bivariate choropleth would work too.
-# ......................................
-
-
 #............................................
-# Model Playground
+# Model prep: tabular crude estimates ####
 #............................................
-# Crude effects #HW4.Q1
+# (HW4.1.Q1) Crude effects
 table(births$pnc5_f, births$preterm_f)
 prop.table(table(births$pnc5_f, births$preterm_f), margin = 1) #risks
-pt = prop.table(table(births$pnc5_f, births$preterm_f), margin = 1) 
+pt = prop.table(table(births$pnc5_f, births$preterm_f), margin = 1)
+#(HW4.1.Q1A)
 pt[2,1]-pt[1,1] # RD -0.0335764
+#(HW4.1.Q1B)
 pt[2,1]/pt[1,1] # RR 0.7374673
+#(HW4.1.Q1C)
 (pt[2,1]/pt[1,1])/(pt[2,2]/pt[1,2]) # OR 0.7101271
-# For tabular effects, see epi2by2 and epitools packages... or not.
 
+# (HW4.1.Q1) Increasingly advanced but more direct alternatives....
+crude_risks = births %>%
+  group_by(pnc5_f, preterm_f) %>%
+  summarize(n=n()) %>% mutate(pct = n / sum(n)) %>%
+  filter(preterm_f == "preterm", !is.na(pnc5_f))
+r0 = crude_risks$pct[crude_risks$pnc5_f == "No Early PNC"]
+r1 = crude_risks$pct[crude_risks$pnc5_f == "Early PNC"]
+r1 - r0
 
-# Thinking ahead to EMM #HW4.Q2
-pt2 = prop.table(table(births$pnc5_f, births$preterm_f, births$raceeth_f), 
-                 margin = c(1,3)) #risks. Note we're getting into dplyr is better territory...
+births %>%
+  group_by(raceeth_f, pnc5_f, preterm_f) %>%
+  summarize(n=n()) %>%
+  mutate(pct = n / sum(n)) %>%
+  filter(!is.na(pnc5_f), preterm_f == "preterm") %>%
+  group_by(raceeth_f) %>% mutate(rd = pct-lag(pct)) %>%
+  filter(pnc5_f == "Early PNC")
+# Confused about lag()? Try running: 1:10; lag(1:10)
+
+rd_df = births_sm %>%
+  group_by(raceeth_f, pnc5_f, preterm_f) %>%
+  summarize(n=n()) %>%
+  mutate(pct = n / sum(n)) %>%
+  filter(!is.na(pnc5_f), preterm_f == "preterm") %>%
+  select(-preterm_f, -n) %>%
+  spread(pnc5_f, pct) %>%
+  mutate(RD = `No Early PNC` - `Early PNC`)
+# ^ Note backticks to reference variable names with spaces
+rd_df
+
+as.data.frame(table(births_sm$preterm_f, births_sm$pnc5_f, births_sm$raceeth_f))
+rd_tbl = as.data.frame(prop.table(table(preterm = births_sm$preterm_f,
+                                        pnc5 = births_sm$pnc5_f,
+                                        raceeth = births_sm$raceeth_f),
+                                  margin = c(2,3))) # Note vector of margins
+
+# For tabular effects, see epi2by2 and epitools packages... or not!
+
+#............................................
+# Model prep: tabular statified estimates ####
+#............................................
+
+# (HW4.1.Q2) Three way prop table
+pt2 = prop.table(table(births$pnc5_f, births$preterm_f, births$raceeth_f),
+                 margin = c(1,3)) #risks. Note we're getting into "dplyr is better" territory...
 pt2[2,1,]-pt2[1,1,] #Crude RDs
 pt2[2,1,]/pt2[1,1,] # RRs
 (pt2[2,1,]/pt2[1,1,])/(pt2[2,2,]/pt2[1,2,]) # ORs
 pt2[1,2,] # term births, no PNC
 
-# ggplot #HW4.Q3
+births_risk_df = births_sm %>%
+  group_by(raceeth_f, pnc5_f, preterm_f) %>% # careful with groups
+  summarize(n=n()) %>%
+  mutate(pct = n / sum(n)) %>%
+  filter(!is.na(pnc5_f), preterm_f == "preterm")
+births_risk_df
+
+#............................................
+# EMM graphs ####
+#............................................
+
+# (HW4.1.Q3)
+# EMM ggplot Using the dplyr object
+births_risk_df %>%
+  ggplot(aes(pnc5_f, pct, color=raceeth_f, group=raceeth_f))+
+  geom_line(size = 1)+geom_point(aes(size=n))+
+  geom_hline(yintercept = 0.125, lty=2)+
+  annotate(label="EMM note!", x=0.8, y=0.14, geom="text")+
+  scale_y_continuous(limits=c(0,NA))+
+  labs(title="Quick look at crude EMM of RD by race-ethnicity",
+       subtitle="Note possible EMM (angle of lines)... and underlying disparities!",
+       x="Prenatal Care", y="Prevalence of Preterm Birth",
+       caption="n = 62000 or so, data from NC SCHS 2012.") +
+  theme_bw()
+
+# (HW4.1.Q3 alternative)
+# EMM graph using the three-way table object
 pt2_df = data.frame(pt2); names(pt2_df) = c("exposure", "outcome", "group", "estimate")
-ggplot(data=pt2_df[pt2_df$outcome == "preterm",], 
+ggplot(data=pt2_df[pt2_df$outcome == "preterm",],
        aes(x=exposure, y=estimate, color=group, group=group))+
   geom_point()+geom_path()+geom_hline(yintercept=0.125)+
   annotate("text", x=.7, y=.13, label="EMM note line")+
   labs(title="Quick look at Crude EMM of RD by Race-Ethnicity", x= "Prevalence of Preterm Birth",
        subtitle="Note possible EMM in the angle of the lines... \n ...and disparities more impactful than our intervention. ")
 
-#RD model # HW4.Q4
-m_crude_rd = glm(data=births, preterm_f ~ pnc5_f, family=binomial(link="identity")) 
+#............................................
+# Crude GLM ####
+#............................................
 
-# factor referrent matters! #HW4.Q5
+# (HW4.2.Q4)
+m_crude_rd = glm(data=births, preterm_f ~ pnc5_f, family=binomial(link="identity"))
+m_crude_rd
+
+# (HW4.Q2.5) factor referrent matters!
 # births$preterm_f = relevel(births$preterm_f, ref = "preterm")
+levels(births$preterm_f) # If levels are backwards you'll need something like the below line:
 births$preterm_f = relevel(births$preterm_f, ref = "term")
-m_crude_rd = glm(data=births, preterm_f ~ pnc5_f, family=binomial(link="identity")) 
+levels(births$pnc5_f) # Looking good
+m_crude_rd = glm(data=births, preterm_f ~ pnc5_f, family=binomial(link="identity"))
 
-# Model object structure HW4.Q6
-str(m_crude_rd)
+# (HW4.2.Q6) Model object structure
+str(m_crude_rd) #It's huge!
 str(m_crude_rd, max.level = 1)
+# It's a list with a buncha stuff in it!
 
-# HW4.Q7
+# (HW4.2.Q7) coef() and confint()
 coef(m_crude_rd)
 confint(m_crude_rd)
 
-# Clean outputs for graphing HW4.Q4e
-m_crude_results = data.frame(model="M1: Crude", cbind(broom::tidy(m_crude_rd), confint(m_crude_rd)), stringsAsFactors = F)[2,]
+# (HW4.2.Q8) Clean outputs for graphing
+m_crude_results = data.frame(model="M1: Crude", cbind(broom::tidy(m_crude_rd), broom::confint_tidy(m_crude_rd)), stringsAsFactors = F)[2,]
 str(m_crude_results)
 
-# Or for the fancy, create a list of models and use lapply to extract what you need for ggplot...
+# (HW4.2.Q9) Crude ggplot
+m_crude_results %>%
+  ggplot(aes(model, estimate))+
+  geom_point() + geom_linerange(aes(ymin=conf.low, ymax=conf.high)) +
+  scale_y_continuous(limits=c(NA,0)) # show zero as max
 
-# Fuller models
-births$mage_sq = births$mage^2 # Can also use I(), or poly() or polym(), but be mindful...
-model_vars = c("pnc5_f", "preterm_f", "raceeth_f", "smoker_f", "mage", "mage_sq") #in consideration from DAG
-model_data = births[,model_vars]
+#............................................
+# GLMs with Confounder Control ####
+#............................................
 
-m_plussmoke_rd = glm(data=births, preterm_f ~ pnc5_f + smoker_f, family=binomial(link="identity")) 
-model_results = rbind(m_crude_results, data.frame(model="M2: M1+smoking", cbind(broom::tidy(m_plussmoke_rd), confint(m_plussmoke_rd)), stringsAsFactors = F)[2,])
+# (HW4.2.Q8) Fuller models
+head(births_sm)
+births$mage_sq = births$mage ^ 2
+m1 = glm(formula = preterm_f ~ pnc5_f, family = binomial("identity"), data = births)
+m2 = glm(formula = preterm_f ~ pnc5_f + smoker_f , family = binomial("identity"), data = births)
+m3 = glm(formula = preterm_f ~ pnc5_f + smoker_f + mage, family = binomial("identity"), data = births)
+m4 = glm(formula = preterm_f ~ pnc5_f + smoker_f + poly(mage, 2, raw = T), family = binomial("identity"), data = births)
 
-m_plusmage_rd = glm(data=births, preterm_f ~ pnc5_f + smoker_f + mage, family=binomial(link="identity")) 
-model_results = rbind(model_results, data.frame(model="M3: M2+mage", cbind(broom::tidy(m_plusmage_rd), confint(m_plusmage_rd)), stringsAsFactors = F)[2,])
+# method 0: no dplyr or purrr. yuck.
+coef(m1); confint(m1)
+c(coef(m1)[2], confint(m1)[2,])
 
-m_plusmagesq_rd = glm(data=births, preterm_f ~ pnc5_f + smoker_f + mage + mage_sq, family=binomial(link="identity")) 
-model_results = rbind(model_results, data.frame(model="M4: M3+mage_sq", cbind(broom::tidy(m_plusmagesq_rd), confint(m_plusmagesq_rd)), stringsAsFactors = F)[2,])
+m1_summary = summary(m1)
+m1_summary$coefficients
+c(coef(m1)[2], confint(m1)[2,], std.error = m1_summary$coefficients[2,2])
 
-ggplot(model_results, aes(model, estimate,color=std.error, fill=std.error))+
-  geom_linerange(aes(ymin=X2.5.., ymax=X97.5..), size=1)+
+m1_df = c(coef(m1)[2], confint(m1)[2,], std.error = m1_summary$coefficients[2,2])
+m2_df = c(coef(m2)[2], confint(m2)[2,], std.error = summary(m2)$coefficients[2,2])
+m3_df = c(coef(m3)[2], confint(m3)[2,], std.error = summary(m3)$coefficients[2,2])
+m4_df = c(coef(m4)[2], confint(m4)[2,], std.error = summary(m4)$coefficients[2,2])
+
+results_df = data.frame(rbind(m1_df, m2_df, m3_df, m4_df))
+results_df$model_name = row.names(results_df)
+
+# method 1: dplyr & broom
+library(broom)
+m1_df = bind_cols(tidy(m1), confint_tidy(m1)) %>% filter(term == "pnc5_fEarly PNC") %>% mutate(model_name="M1: Crude")
+m2_df = bind_cols(tidy(m2), confint_tidy(m2)) %>% filter(term == "pnc5_fEarly PNC") %>% mutate(model_name="M2: M1 + smoking")
+m3_df = bind_cols(tidy(m3), confint_tidy(m3)) %>% filter(term == "pnc5_fEarly PNC") %>% mutate(model_name="M3: M2 + mage")
+m4_df = bind_cols(tidy(m4), confint_tidy(m4)) %>% filter(term == "pnc5_fEarly PNC") %>% mutate(model_name="M4: M3 + mage^2")
+#....
+results_df = bind_rows(m1_df, m2_df, m3_df, m4_df)
+results_df
+
+# method 2: dplyr & purrr
+model_results = function(m){bind_cols(tidy(m), confint_tidy(m)) %>% filter(term == "pnc5_fEarly PNC")}
+model_results(m1)
+
+model_df = tibble(models = list(m1, m2, m3, m4),
+                  model_name = paste0("M", 1:4),
+                  results = map(models, model_results),
+                  estimate = map_dbl(results, "estimate"))
+model_df
+# ^ The estimate variable is just a demo of the list accessor
+
+results_df = bind_rows(model_df$results) %>%
+  mutate(model_name = model_df$model_name)
+results_df
+
+# method 3.... fancier purrr!
+vars = c("preterm_f", "pnc5_f", "smoker_f", "mage", "mage_sq") # predictors
+model_maker = function(v) { glm(preterm_f ~ ., family=binomial("identity"), data=births_sm[,v]) }
+model_df = tibble(covariates = map(2:length(vars), ~ vars[1:.]), models = map(covariates, model_maker))
+#....
+
+# plotting
+ggplot(results_df, aes(model_name, estimate, color=std.error, fill=std.error))+
+  geom_linerange(aes(ymin=conf.low, ymax=conf.high), size=1)+
   geom_point(shape=15, size=4, color="white")+ geom_point(shape=15)+
   scale_y_continuous(limits=c(NA,0))+
   labs(title="Model results", subtitle="Mirroring tufte boxplot aesthetics, see ggthemes::geom_tufteboxplot()")+
   ggthemes::theme_tufte()
+
+#............................................
+# Write model results out ####
+#............................................
 
 write.table(model_results, "clipboard", sep="\t", row.names = F)
 # or write csv and shell.exec
 write.csv(model_results, "births_table2.csv", row.names = F)
 # shell.exec("births_table2.csv")
 
-# RR and OR models #HW4.Q10
+#............................................
+# RR/OR models and LRT demo ####
+#............................................
+
+# (HW4.3.Q11) RR and OR models
 m1_rr = glm(data=births, preterm_f ~ pnc5_f, family=binomial(link="log")) #RR model
 exp(coef(m1_rr))
 m1_or = glm(data=births, preterm_f ~ pnc5_f, family=binomial(link="logit")) #OR model
 exp(coef(m1_or))
 
 
-# Model comparison HW4.Q11
+# Model comparison HW4.3.Q12
 model_data = na.omit(model_data) # also see complete.cases() for T/F vector. Nice for model comparisons where nesting is required.
-m_crude_rd = glm(data=model_data, preterm_f ~ pnc5_f, family=binomial(link="identity")) 
-m_plussmoke_rd = glm(data=model_data, preterm_f ~ pnc5_f + smoker_f, family=binomial(link="identity")) 
+m_crude_rd = glm(data=model_data, preterm_f ~ pnc5_f, family=binomial(link="identity"))
+m_plussmoke_rd = glm(data=model_data, preterm_f ~ pnc5_f + smoker_f, family=binomial(link="identity"))
 anova(m_crude_rd, m_plussmoke_rd, test = "LRT") #Better to use bias-variance trade-off process. See EPID 718.
 
-m_plusmage_rd = glm(data=model_data, preterm_f ~ pnc5_f + smoker_f + mage, family=binomial(link="identity")) 
+m_plusmage_rd = glm(data=model_data, preterm_f ~ pnc5_f + smoker_f + mage, family=binomial(link="identity"))
 anova(m_plusmage_rd, m_plussmoke_rd, test = "LRT") #Better to use bias-variance trade-off process. See EPID 718.
 
-m_plusmagesq_rd = glm(data=births, preterm_f ~ pnc5_f + smoker_f + mage + mage_sq, family=binomial(link="identity")) 
+m_plusmagesq_rd = glm(data=births, preterm_f ~ pnc5_f + smoker_f + mage + mage_sq, family=binomial(link="identity"))
 anova(m_plusmagesq_rd, m_plussmoke_rd, test = "LRT") #Better to use bias-variance trade-off process. See EPID 718.
-
-# Model predictions
-# str(mod1)
-# mod1 = glm(data=births, visits ~ mage, family=binomial(link="identity"))
-# head(new_df)
-# new_df = mod1$model; new_df$preds = predict(mod1) #could give new data in here. One way to get contrasts?
-# predict_df = data.frame(mage = c(10, 20, 30))
-# predict(mod1, predict_df, se.fit = T)
-# head(new_df)
-# ggplot(new_df, aes(mage, visits)) + 
-#   geom_jitter(alpha=0.1)+
-#   geom_smooth()+
-#   geom_line(aes(y=preds), color="red", lty=2)
-# preds_obj = predict(mod1, se.fit = T)
-
 
 #............................................
 # I'd like to add g-formula in the future... as well as bias-variance trade offs
 #............................................
+
+# ......................................
+# __End Homework 4 /  Start Homework 5 ####
+# ......................................
 
 #............................................
 # EMM / final model
@@ -624,9 +677,9 @@ glm(data=births, preterm_f ~ pnc5_f + smoker_f, family=binomial(link="identity")
 
 head(births)
 table(births$race_f, births$methnic) # note my "ethnicity" coding may not be ideal.
-mfull_emm_rd = glm(data=births, 
-                   preterm_f ~ pnc5_f * raceeth_f + 
-                     smoker_f + mage + mage_sq, 
+mfull_emm_rd = glm(data=births,
+                   preterm_f ~ pnc5_f * raceeth_f +
+                     smoker_f + mage + mage_sq,
                    family=binomial(link="identity"))
 
 summary(mfull_emm_rd)
@@ -647,19 +700,23 @@ C(births$raceeth_f) # get or set contrasts
 contrasts(births$raceeth_f) # Let's look: contrast matrix
 # See contr.treatment or contr.sum
 
+#..........................................
+# EMM contrasts ####
+#..........................................
+
 # Contrasts using contrast package
 library(contrast)
 contrast(mfull_emm_rd, # demo one-level
          a=list(pnc5_f = "PNC starts in first 5 mo", raceeth_f = "AA", smoker_f = "Non smoker", mage=0, mage_sq=0),
          b=list(pnc5_f = "No PNC before 5 mo", raceeth_f = "AA", smoker_f="Non smoker", mage=0, mage_sq=0))
 
-raceeth_diff = contrast(mfull_emm_rd, 
+raceeth_diff = contrast(mfull_emm_rd,
                         a=list(pnc5_f = "PNC starts in first 5 mo", raceeth_f = levels(births$raceeth_f), smoker_f="Non smoker", mage=0, mage_sq=0),
                         b=list(pnc5_f = "No PNC before 5 mo", raceeth_f = levels(births$raceeth_f), smoker_f="Non smoker", mage=0, mage_sq=0))
 
 print(raceeth_diff, X=T)
 str(raceeth_diff)
-EMM_df = data.frame(model=paste0("M5: ", raceeth_diff$raceeth_f), 
+EMM_df = data.frame(model=paste0("M5: ", raceeth_diff$raceeth_f),
                     estimate=raceeth_diff$Contrast, std.error = raceeth_diff$SE,
                     X2.5..=raceeth_diff$Lower, X97.5..=raceeth_diff$Upper, stringsAsFactors = F)
 EMM_df
@@ -684,9 +741,9 @@ ggplot(bind_rows(model_results,EMM_df), aes(model, estimate,color=estimate, fill
 # births$pncf_f_raceeth_f = interaction(births$pnc5_f,births$raceeth_f)
 # births$re_int = ifelse()
 # table(births$pncf_f_raceeth_f)
-# mfull_emm_rd2 = glm(data=births, 
-#                    preterm_f ~ pncf_f_raceeth_f + 
-#                      smoker_f + mage + mage_sq, 
+# mfull_emm_rd2 = glm(data=births,
+#                    preterm_f ~ pncf_f_raceeth_f +
+#                      smoker_f + mage + mage_sq,
 #                    family=binomial(link="identity"))
 # broom::tidy(mfull_emm_rd2)
 
@@ -707,27 +764,27 @@ ggplot(bind_rows(model_results,EMM_df), aes(model, estimate,color=estimate, fill
 #............................................
 # Table Outputs
 #............................................
-write.csv(bind_rows(model_results,EMM_df), 
+write.csv(bind_rows(model_results,EMM_df),
           "table2_birth_EMM_df.csv", row.names = F)
 # shell.exec("table2_birth_EMM_df.csv")
-write.table(bind_rows(model_results,EMM_df), 
+write.table(bind_rows(model_results,EMM_df),
             "clipboard", sep="\t", quote=F, row.names = F) # Table 2
 
-t1=CreateTableOne(data=births[,c("pnc5_f", "preterm_f", "smoker_f","sex", "raceeth_f", "wksgest", "mage", "meduc")], 
+t1=CreateTableOne(data=births[,c("pnc5_f", "preterm_f", "smoker_f","sex", "raceeth_f", "wksgest", "mage", "meduc")],
                   includeNA = T, argsNonNormal = c("wksgest"))
 print(t1, showAllLevels=T) #print.TableOne # let's see the guts.
 write.table(print(t1, showAllLevels=T, quote = T), "clipboard",   # Table 1A
-            sep="\t", quote = F) 
+            sep="\t", quote = F)
 
-t2=CreateTableOne(data=births[,c("pnc5_f", "preterm_f", "smoker_f","sex", "raceeth_f", "wksgest", "mage", "meduc")], 
+t2=CreateTableOne(data=births[,c("pnc5_f", "preterm_f", "smoker_f","sex", "raceeth_f", "wksgest", "mage", "meduc")],
                   strata=c("raceeth_f"), includeNA = T, argsNonNormal = c("wksgest"))
-print(t2, showAllLevels=T) #print.TableOne # let's see the guts. 
+print(t2, showAllLevels=T) #print.TableOne # let's see the guts.
 write.table(trimws(print(t2, showAllLevels=T, quote = F)), "clipboard", sep="\t", quote = F)  # Table 1B
 
 # yuck. leading and tailing spaces? trimws can help
 
-county_data %>% 
-  bind_rows(births %>% 
+county_data %>%
+  bind_rows(births %>%
               summarise(n = n(), preterm=sum(preterm, na.rm=T), pnc5=sum(pnc5, na.rm=T)) %>%
               mutate(pct_pnc5 = pnc5/n*100, pct_preterm=preterm/n*100) %>%
               mutate(code=NA, variable="cores", name="North Carolina", helper=37)
@@ -744,7 +801,7 @@ save.image("birth_results.RData")
 
 
 # ......................................
-# Assignments # This section is YUCK!!!! 
+# Assignments # This section is YUCK!!!! ####
 # ......................................
 ### A1
 hist(births$weeks)
@@ -759,11 +816,10 @@ library(epitools) #for epitab()
 #library(epicalc) #Busted for newer R versions
 library(Epi)
 #http://www.inside-r.org/packages/cran/epiR/docs/epi.2by2
-
 findings = function(e,o,s){
-  # Takes t as top=D-, D+; left=E-, E+   #Convert to top=D+, D1; left=E+, E1
+  #Takes t as top=D-, D+; left=E-, E+   #Convert to top=D+, D1; left=E+, E1
   #  t2 = matrix(c(t[2,2], t[2,1], t[1,2], t[1,1]), nrow = 2, byrow = T)
-  
+
   l = unique(s)
   for(strata in l){
     # e = births$pnc5_f; o = births$preterm_f
@@ -778,7 +834,7 @@ findings = function(e,o,s){
     R = (t[1,2]+t[2,2])/(sum(t))
     cat("Risk Overall:", R, "\n")
     #cat("Prevalence of outcome")
-    cat("RD: ", R1-R0) #update here  
+    cat("RD: ", R1-R0) #update here
   }
 }
 
@@ -809,14 +865,14 @@ epitab(t)
 
 
 #............................................
-## Clusters & Trees 
+## Clusters & Trees ####
 #............................................
 # kmeans
 to_model = births[,c("pnc5_f", "preterm_f", "smoker", "race_f", "cores", "mage")]
 to_model = na.omit(to_model)
 head(to_model)
 scale_01 = function(x){
-  x = as.numeric(x); 
+  x = as.numeric(x);
   x = (x-min(x, na.rm = T)) / (max(x, na.rm = T) - min(x, na.rm = T))
   return(x)
 }
@@ -825,13 +881,13 @@ summary(to_model_01)
 km = kmeans(to_model_01[,names(to_model_01) != "preterm_f"], 2)
 to_model$cluster = km$cluster
 table(to_model$cluster, to_model$preterm_f)
-prop.table(table(to_model$cluster, to_model$preterm_f), margin = 2) #meh. cluster 1 is a little more preterm. 
+prop.table(table(to_model$cluster, to_model$preterm_f), margin = 2) #meh. cluster 1 is a little more preterm.
 
 km2 = kmeans(to_model_01[,names(to_model_01) != "preterm_f"], 20)
 to_model$cluster2 = km2$cluster
-prop.table(table(to_model$cluster2, to_model$preterm_f), margin = 1)*100 #meh. cluster 1 is a little more preterm. 
+prop.table(table(to_model$cluster2, to_model$preterm_f), margin = 1)*100 #meh. cluster 1 is a little more preterm.
 
-to_model %>% group_by(cluster2) %>% 
+to_model %>% group_by(cluster2) %>%
   summarise(n = n(), pct_preterm=sum(preterm_f=="preterm", na.rm=T)/n)
 # https://datascience.stackexchange.com/questions/22/k-means-clustering-for-mixed-numeric-and-categorical-data?newreg=e85b257b6b524d768e3a8cff706840eb
 #............................................
@@ -860,7 +916,7 @@ table(to_model$rpart_pred)
 
 
 #............................................
-## Map makin' 
+## Map makin' ####
 #............................................
 # Add tmap:: library(sp) #for spatial objects
 library(sp)
@@ -875,7 +931,7 @@ head(county_data) #formatter[formatter$variable=="cores",]
 getwd()
 if(!file.exists("./maps/nc counties.shp")){ #Run Once to get NC Counties.
   dir.create("./maps/")
-  # ftp://ftp2.census.gov/geo/tiger/TIGER2016/ or 
+  # ftp://ftp2.census.gov/geo/tiger/TIGER2016/ or
   # https://www.census.gov/cgi-bin/geo/shapefiles/index.php
   download.file("ftp://ftp2.census.gov/geo/tiger/TIGER2015/COUNTY/tl_2015_us_county.zip", "./maps/uscounties.zip")
   unzip("./maps/uscounties.zip", exdir="./maps")
@@ -912,8 +968,8 @@ text(county_centroids@coords, labels=as.character(nc_counties$NAME), cex=0.4)
 ### Using spplot()
 spplot(nc_counties, "pct_pnc5") #ugh. gorgeous
 nc_counties$pct_pnc5_f = cut(nc_counties$pct_pnc5, 5)
-spplot(nc_counties, "pct_pnc5_f", 
-       col.regions=brewer.pal(5,"RdYlGn"), 
+spplot(nc_counties, "pct_pnc5_f",
+       col.regions=brewer.pal(5,"RdYlGn"),
        main="% of Births with Early Start of Prenatal Care (<5mo)")
 
 ### Using ggplot() - nice, but slow
@@ -928,21 +984,21 @@ cut(nc_counties$pct_pnc5, 5)
 pretty(nc_counties$pct_pnc5) #funny name
 nc_counties_fort$pct_pnc5_f = cut(nc_counties_fort$pct_pnc5, breaks=pretty(pretty(nc_counties_fort$pct_pnc5)))
 table(nc_counties_fort$pct_pnc5_f)
-#grep to make , a -_ move to top, like 
+#grep to make , a -_ move to top, like
 #http://time_com/4394141/zika-abortion-usa/
-mymap = 
-  ggplot(nc_counties_fort, aes(x=long, y=lat, group=group, fill=pct_pnc5_f)) + 
+mymap =
+  ggplot(nc_counties_fort, aes(x=long, y=lat, group=group, fill=pct_pnc5_f)) +
   geom_polygon(color="white")+coord_map()+
-  labs(title=paste0("Early prenatal care by county in North Carolina,", births$byear[1]), 
-       subtitle="This ggplot is gorgeous, holy cow", 
+  labs(title=paste0("Early prenatal care by county in North Carolina,", births$byear[1]),
+       subtitle="This ggplot is gorgeous, holy cow",
        x="", y="")+
   scale_fill_brewer(name="% Early Prenatal Care", type="seq", palette ="Greens")+
   #scale_fill_gradient(name="% Early Prenatal Care", low = "white", high = "dark green")+
   theme_map()+theme(legend.position="right")
 #theme_map()+theme(legend_position="bottom")+guides(fill=guide_legend(nrow=1))#right")
-mymap 
+mymap
 # http://novyden.blogspot.com/2013/09/how-to-expand-color-palette-with-ggplot.html
-mymap+theme_minimal() #also a nice one / clean. 
+mymap+theme_minimal() #also a nice one / clean.
 
 # tmap
 tm_shape(nc_counties)+
@@ -957,7 +1013,7 @@ str(nc_counties_sf)
 plot(nc_counties_sf)
 
 # Demos: transform, gTouches,
-proj4string(nc_counties) #or nc_counties@proj4string  
+proj4string(nc_counties) #or nc_counties@proj4string
 nc_stateplane_proj = "+proj=lcc +lat_1=36.16666666666666 +lat_2=34.33333333333334 +lat_0=33.75 +lon_0=-79 +x_0=609601.2192024384 +y_0=0 +ellps=GRS80 +datum=NAD83 +to_meter=0.3048006096012192 +no_defs"
 nc_counties_stateplane = spTransform(nc_counties, nc_stateplane_proj)
 
@@ -990,7 +1046,7 @@ plot(nc_counties); plot(nc_counties[orange_neighbors[,1],], col="blue", add=T)
 
 
 #............................................
-# Useful code without questions
+# PARKING LOT (useful code without questions)
 #............................................
 
 # Print some useful Table 1 versions
@@ -999,19 +1055,19 @@ births$mage_cat_f = cut(births$mage, seq(9, 59, by=10))
 table(births$mage, births$mage_cat_f)
 
 #Outcome strata - preterm
-t1=CreateTableOne(data=births[,c("pnc5_f", "preterm_f", "smoker","sex", "race_f", "wksgest", "mage", "meduc")], 
+t1=CreateTableOne(data=births[,c("pnc5_f", "preterm_f", "smoker","sex", "race_f", "wksgest", "mage", "meduc")],
                   strata=c("preterm_f"), includeNA = T, argsNonNormal = c("wksgest"))
 print(t1,showAllLevels=T )
 # Thinking ahead to EMM: Race/eth variable
-t2=CreateTableOne(data=births[,c("pnc5_f", "preterm_f", "smoker","sex", "race_f", "wksgest", "mage", "meduc")], 
+t2=CreateTableOne(data=births[,c("pnc5_f", "preterm_f", "smoker","sex", "race_f", "wksgest", "mage", "meduc")],
                   strata=c("race_f"), includeNA = T, argsNonNormal = c("wksgest"))
 print(t2, showAllLevels=T) #print.TableOne # let's see the guts.
 # Mage - thinking ahead to functional form at least...
-t3=CreateTableOne(data=births[,c("pnc5_f", "preterm_f", "smoker","sex", "race_f", "wksgest", "mage", "meduc", "mage_cat_f")], 
+t3=CreateTableOne(data=births[,c("pnc5_f", "preterm_f", "smoker","sex", "race_f", "wksgest", "mage", "meduc", "mage_cat_f")],
                   strata=c("mage_cat_f"), includeNA = T, argsNonNormal = c("wksgest"))
 print(t3) #print.TableOne # let's see the guts.
 
 #How to get this to excel... could be improved
-write.table(print(t2, showAllLevels=T, quote = T), "clipboard", sep="\t") 
+write.table(print(t2, showAllLevels=T, quote = T), "clipboard", sep="\t")
 # ......................................
 

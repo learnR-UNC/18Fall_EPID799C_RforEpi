@@ -653,7 +653,7 @@ exp(coef(m1_or))
 
 
 # Model comparison HW4.3.Q12
-model_data = na.omit(model_data) # also see complete.cases() for T/F vector. Nice for model comparisons where nesting is required.
+model_data = na.omit(births) # also see complete.cases() for T/F vector. Nice for model comparisons where nesting is required.
 m_crude_rd = glm(data=model_data, preterm_f ~ pnc5_f, family=binomial(link="identity"))
 m_plussmoke_rd = glm(data=model_data, preterm_f ~ pnc5_f + smoker_f, family=binomial(link="identity"))
 anova(m_crude_rd, m_plussmoke_rd, test = "LRT") #Better to use bias-variance trade-off process. See EPID 718.
@@ -661,7 +661,7 @@ anova(m_crude_rd, m_plussmoke_rd, test = "LRT") #Better to use bias-variance tra
 m_plusmage_rd = glm(data=model_data, preterm_f ~ pnc5_f + smoker_f + mage, family=binomial(link="identity"))
 anova(m_plusmage_rd, m_plussmoke_rd, test = "LRT") #Better to use bias-variance trade-off process. See EPID 718.
 
-m_plusmagesq_rd = glm(data=births, preterm_f ~ pnc5_f + smoker_f + mage + mage_sq, family=binomial(link="identity"))
+m_plusmagesq_rd = glm(data=model_data, preterm_f ~ pnc5_f + smoker_f + mage + mage_sq, family=binomial(link="identity"))
 anova(m_plusmagesq_rd, m_plussmoke_rd, test = "LRT") #Better to use bias-variance trade-off process. See EPID 718.
 
 #............................................
@@ -678,7 +678,7 @@ anova(m_plusmagesq_rd, m_plussmoke_rd, test = "LRT") #Better to use bias-varianc
 glm(data=births, preterm_f ~ pnc5_f + smoker_f, family=binomial(link="identity")) #Discussion of model spec
 
 head(births)
-table(births$race_f, births$methnic) # note my "ethnicity" coding may not be ideal.
+table(births$raceeth_f, births$methnic) # note my "ethnicity" coding may not be ideal.
 mfull_emm_rd = glm(data=births,
                    preterm_f ~ pnc5_f * raceeth_f +
                      smoker_f + mage + mage_sq,
@@ -690,15 +690,15 @@ broom::tidy(mfull_emm_rd)
 
 # Point estimates by hand, a few ways
 mfull_emm_rd$coefficients[2] #WnH
-RD_WnH = mfull_emm_rd$coefficients["pnc5_fPNC starts in first 5 mo"] #WnH
-RD_WnH + mfull_emm_rd$coefficients["pnc5_fPNC starts in first 5 mo:raceeth_fAA"] #AA
+RD_WnH = mfull_emm_rd$coefficients["pnc5_fEarly PNC"] #WnH
+RD_WnH + mfull_emm_rd$coefficients["pnc5_fEarly PNC"] #AA
 sum(mfull_emm_rd$coefficients[c(2,10)]) # AA
 sum(mfull_emm_rd$coefficients[c(2,11)]) # WH
 sum(coef(mfull_emm_rd)[c(2,12)]) # AI/AN
 sum(coef(mfull_emm_rd)[c(2,13)]) # Other
 
 
-C(births$raceeth_f) # get or set contrasts
+# C(births$raceeth_f) # get or set contrasts
 contrasts(births$raceeth_f) # Let's look: contrast matrix
 # See contr.treatment or contr.sum
 
@@ -709,11 +709,12 @@ contrasts(births$raceeth_f) # Let's look: contrast matrix
 # Contrasts using contrast package
 # install.packages("contrast")
 library(contrast)
-map(births, levels)
+map(births[, map_lgl(births, is.factor)], levels) # level check - purrr
 contrast(mfull_emm_rd, # demo one-level
          a=list(pnc5_f = "Early PNC", raceeth_f = "African American", smoker_f = "Non-smoker", mage=0, mage_sq=0),
          b=list(pnc5_f = "No Early PNC", raceeth_f = "African American", smoker_f="Non-smoker", mage=0, mage_sq=0))
 
+# Here's the Contrast / EMM punchline!
 raceeth_diff = contrast(mfull_emm_rd,
                         a=list(pnc5_f = "Early PNC", raceeth_f = levels(births$raceeth_f), smoker_f="Non-smoker", mage=0, mage_sq=0),
                         b=list(pnc5_f = "No Early PNC", raceeth_f = levels(births$raceeth_f), smoker_f="Non-smoker", mage=0, mage_sq=0))

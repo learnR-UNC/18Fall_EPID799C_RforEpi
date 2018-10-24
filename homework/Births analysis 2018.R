@@ -390,8 +390,8 @@ str(county_tiers$econ_tier)
 county_tiers$econ_tier = ordered(county_tiers$econ_tier)
 
 #(HW3.2.4D)
-county_df = births %>% group_by(cores) %>%
-  summarize(n=n(),
+county_df = as.tibble(births) %>% group_by(cores) %>%
+  summarise(n=n(),
             pct_earlyPNC = mean(pnc5, na.rm=T),
             pct_preterm = mean(preterm, na.rm=T)) %>%
   left_join(county_data) %>%
@@ -710,24 +710,38 @@ contrasts(births$raceeth_f) # Let's look: contrast matrix
 # install.packages("contrast")
 library(contrast)
 map(births[, map_lgl(births, is.factor)], levels) # level check - purrr
+
 contrast(mfull_emm_rd, # demo one-level
-         a=list(pnc5_f = "Early PNC", raceeth_f = "African American", smoker_f = "Non-smoker", mage=0, mage_sq=0),
-         b=list(pnc5_f = "No Early PNC", raceeth_f = "African American", smoker_f="Non-smoker", mage=0, mage_sq=0))
+         a=list(pnc5_f = "Early PNC",
+                raceeth_f = "African American",
+                smoker_f = "Non-smoker", mage=0, mage_sq=0),
+         b=list(pnc5_f = "No Early PNC",
+                raceeth_f = "African American",
+                smoker_f="Non-smoker", mage=0, mage_sq=0))
 
 # Here's the Contrast / EMM punchline!
 raceeth_diff = contrast(mfull_emm_rd,
-                        a=list(pnc5_f = "Early PNC", raceeth_f = levels(births$raceeth_f), smoker_f="Non-smoker", mage=0, mage_sq=0),
-                        b=list(pnc5_f = "No Early PNC", raceeth_f = levels(births$raceeth_f), smoker_f="Non-smoker", mage=0, mage_sq=0))
+                        a=list(pnc5_f = "Early PNC",
+                               raceeth_f = levels(births$raceeth_f),
+                               smoker_f="Non-smoker", mage=0, mage_sq=0),
+                        b=list(pnc5_f = "No Early PNC",
+                               raceeth_f = levels(births$raceeth_f),
+                               smoker_f="Non-smoker", mage=0, mage_sq=0))
 print(raceeth_diff, X=T)
 str(raceeth_diff)
 
 EMM_df = data.frame(model=paste0("M5: ", raceeth_diff$raceeth_f),
-                    estimate=raceeth_diff$Contrast, std.error = raceeth_diff$SE,
-                    conf.low=raceeth_diff$Lower, conf.high=raceeth_diff$Upper, stringsAsFactors = F)
+                    estimate=raceeth_diff$Contrast,
+                    std.error = raceeth_diff$SE,
+                    conf.low=raceeth_diff$Lower,
+                    conf.high=raceeth_diff$Upper,
+                    stringsAsFactors = F)
 EMM_df
 results_df
 
-ggplot(bind_rows(results_df,EMM_df), aes(model, estimate,color=estimate, fill=estimate))+
+as.data.frame(results_df)
+
+ggplot(bind_rows(results_df %>% rename(model=model_name),EMM_df), aes(model, estimate,color=estimate, fill=estimate))+
   geom_linerange(aes(ymin=conf.low, ymax=conf.high), size=1)+
   geom_point(shape=15, size=4, color="white")+ geom_point(shape=15)+
   scale_y_continuous(limits=c(NA,NA), breaks=seq(-0.15, 0.05, 0.01))+
@@ -954,11 +968,12 @@ plot(nc_counties)
 str(nc_counties, max.level = 2)
 # ... or us tigris package. Also see acs package
 
-#remember to merge with the spatial object, not just the data slot, to keep it from reordering
-nc_counties = merge(nc_counties, county_data, by.x="GEOID", by.y="helper")
-
-spplot(nc_counties, "pct_pnc5") # on spplot: https://edzer.github.io/sp/
-spplot(nc_counties, c("pct_pnc5", "pct_preterm")) # on spplot: https://edzer.github.io/sp/
+#remember to merge with the spatial object, not just the data slot, to keep it from reordering!
+nc_counties = merge(nc_counties, county_df, by.x="GEOID", by.y="FIPS")
+head(nc_counties@data)
+spplot(nc_counties, "pct_earlyPNC", main="% Early PNC") # on spplot: https://edzer.github.io/sp/
+spplot(nc_counties, "pct_preterm", main="% Preterm")
+spplot(nc_counties, c("pct_earlyPNC", "pct_preterm")) # on spplot: https://edzer.github.io/sp/
 writeOGR(nc_counties, dsn="./maps", layer="nc counties w data", driver="ESRI Shapefile", overwrite_layer = T)
 
 sum(nc_counties@data$n)
@@ -966,20 +981,23 @@ sum(nc_counties[nc_counties$NAME %in% c("Orange", "Durham", "Chatham"),]$n)
 
 
 ### Using base plot()
+par(mfrow =c(1,1)) # issues with multiplotting from sp, above. Reset plot window to 1x1 plot
 display.brewer.all()
 nc_counties$pct_preterm_colors = as.character(cut(nc_counties$pct_preterm, 10, labels = brewer.pal(10,"RdYlGn")))
 plot(nc_counties, co=nc_counties$pct_preterm_colors, main="% Preterm birth")
 county_centroids = gCentroid(nc_counties, byid = T)
 text(county_centroids@coords, labels=as.character(nc_counties$NAME), cex=0.4)
 
+
 ### Using spplot()
-spplot(nc_counties, "pct_pnc5") #ugh. gorgeous
-nc_counties$pct_pnc5_f = cut(nc_counties$pct_pnc5, 5)
-spplot(nc_counties, "pct_pnc5_f",
-       col.regions=brewer.pal(5,"RdYlGn"),
+spplot(nc_counties, "pct_earlyPNC") #ugh. gorgeous
+nc_counties$pct_earlyPNC_f = cut(nc_counties$pct_earlyPNC, 7)
+spplot(nc_counties, "pct_earlyPNC_f",
+       col.regions=brewer.pal(7,"RdYlGn"),
        main="% of Births with Early Start of Prenatal Care (<5mo)")
 
-### Using ggplot() - nice, but slow
+
+### Using ggplot() OLD style - nice, but slow
 names(nc_counties@data)
 nc_counties_fort = fortify(nc_counties, region = "GEOID")
 str(nc_counties_fort)
@@ -987,9 +1005,10 @@ nc_counties_fort = merge(nc_counties_fort, nc_counties, by.x="id", by.y="GEOID")
 #nc.counties.fort = nc.counties.fort[order(nc.counties.fort$order),]
 names(nc_counties_fort)
 library(ggthemes) # for theme_map
-cut(nc_counties$pct_pnc5, 5)
-pretty(nc_counties$pct_pnc5) #funny name
-nc_counties_fort$pct_pnc5_f = cut(nc_counties_fort$pct_pnc5, breaks=pretty(pretty(nc_counties_fort$pct_pnc5)))
+library(mapproj)
+cut(nc_counties$pct_earlyPNC, 5)
+pretty(nc_counties$pct_earlyPNC) #funny name
+nc_counties_fort$pct_pnc5_f = cut(nc_counties_fort$pct_earlyPNC, breaks=pretty(nc_counties_fort$pct_earlyPNC))
 table(nc_counties_fort$pct_pnc5_f)
 #grep to make , a -_ move to top, like
 #http://time_com/4394141/zika-abortion-usa/
@@ -1009,15 +1028,22 @@ mymap+theme_minimal() #also a nice one / clean.
 
 # tmap
 tm_shape(nc_counties)+
-  tm_fill("pct_pnc5", title="% Early PNC")+
+  tm_fill("pct_earlyPNC", title="% Early PNC")+
   tm_borders()+ #could add more layers with tm_shape and then tm_whatever...
-  tm_layout(main.title="% Early Prenatal Care by County")
+  tm_layout(main.title="tmap: % Early Prenatal Care by County")
 
-# sf
+# sf - the current best
 library(sf)
-nc_counties_sf = sf::read_sf(dsn="./maps", layer="nc counties", stringsAsFactors = F)
-str(nc_counties_sf)
+nc_counties_sf = st_read("./maps/nc counties.shp", stringsAsFactors = F)
+str(nc_counties_sf) # a dataframe
 plot(nc_counties_sf)
+nc_counties_sf %>% # dplyr that map!
+  mutate(GEOID = as.numeric(GEOID)) %>%
+  left_join(county_df, by=c("GEOID"="FIPS")) %>%
+  ggplot(aes(fill = pct_earlyPNC))+
+  geom_sf()+
+  labs(title="sf and ggplot - perhaps best for now: % Early PNC ")
+
 
 # Demos: transform, gTouches,
 proj4string(nc_counties) #or nc_counties@proj4string

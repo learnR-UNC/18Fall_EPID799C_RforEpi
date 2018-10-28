@@ -119,9 +119,10 @@ table(births$mage, useNA = "always")
 births$mage[births$mage==99] <- NA
 
 #### iv
-par(mfrow=c(1,2))
+par(mfrow=c(1,2)) # make our plot window 2 columns
 boxplot(births$mage, main="Boxplot of Maternal Age Distribution")
 plot(density(births$mage), main="Density Plot of Maternal Age Distribution")
+par(mfrow=c(1,1)) # always always reset after this!
 
 #### v
 births$mage_centered <- births$mage - mean(births$mage, na.rm = T)
@@ -740,8 +741,8 @@ EMM_df
 results_df
 
 as.data.frame(results_df)
-
-ggplot(bind_rows(results_df %>% rename(model=model_name),EMM_df), aes(model, estimate,color=estimate, fill=estimate))+
+full_model_results = bind_rows(results_df %>% rename(model=model_name),EMM_df)
+ggplot(full_model_results, aes(model, estimate,color=estimate, fill=estimate))+
   geom_linerange(aes(ymin=conf.low, ymax=conf.high), size=1)+
   geom_point(shape=15, size=4, color="white")+ geom_point(shape=15)+
   scale_y_continuous(limits=c(NA,NA), breaks=seq(-0.15, 0.05, 0.01))+
@@ -785,10 +786,10 @@ ggplot(bind_rows(results_df %>% rename(model=model_name),EMM_df), aes(model, est
 #............................................
 # Table Outputs
 #............................................
-write.csv(bind_rows(model_results,EMM_df),
+write.csv(bind_rows(full_model_results,EMM_df),
           "table2_birth_EMM_df.csv", row.names = F)
 # shell.exec("table2_birth_EMM_df.csv")
-write.table(bind_rows(model_results,EMM_df),
+write.table(full_model_results,
             "clipboard", sep="\t", quote=F, row.names = F) # Table 2
 
 t1=CreateTableOne(data=births[,c("pnc5_f", "preterm_f", "smoker_f","sex", "raceeth_f", "wksgest", "mage", "meduc")],
@@ -804,25 +805,291 @@ write.table(trimws(print(t2, showAllLevels=T, quote = F)), "clipboard", sep="\t"
 
 # yuck. leading and tailing spaces? trimws can help
 
-county_data %>%
-  bind_rows(births %>%
+county_results =
+  county_data %>%
+  left_join(births %>% group_by(cores) %>%
               summarise(n = n(), preterm=sum(preterm, na.rm=T), pnc5=sum(pnc5, na.rm=T)) %>%
-              mutate(pct_pnc5 = pnc5/n*100, pct_preterm=preterm/n*100) %>%
-              mutate(code=NA, variable="cores", name="North Carolina", helper=37)
-  ) %>%
-  write.table("clipboard", sep="\t", row.names = F)
-
-#............................................
+              mutate(pct_pnc5 = pnc5/n*100, pct_preterm=preterm/n*100)
+  )
+county_results %>% write.table("clipboard", sep="\t", row.names = F)
 
 save.image("birth_results.RData")
-
-#............................................
-# Bias variance trade off...
 #............................................
 
+
+#............................................
+## Maps 1 - libraries & ecosystems ####
+#............................................
+# load("D:/User/Dropbox (Personal)/Education/Classes/18Fall_EPID799C_RforEpi/map_parts.rdata")
+library(tidyverse)
+library(broom)
+library(sp)
+library(rgdal) #for reading and writing shapefiles
+library(rgeos) #for spatial tools like gCentroid
+library(RColorBrewer) #For better, much better color ramps
+library(tmap)
+library(sf) #if you use the sf way, pretty much just need sf
+library(ggthemes) # for theme_map
+library(mapproj)
+
+head(county_results) #formatter[formatter$variable=="cores",]
+
+#.........................
+# Get the county shapefile
+#.........................
+getwd()
+if(!file.exists("./maps/nc counties.shp")){ #Run Once to get NC Counties.
+  dir.create("./maps/")
+  # ftp://ftp2.census.gov/geo/tiger/TIGER2016/ or
+  # https://www.census.gov/cgi-bin/geo/shapefiles/index.php
+  download.file("ftp://ftp2.census.gov/geo/tiger/TIGER2015/COUNTY/tl_2015_us_county.zip", "./maps/uscounties.zip")
+  unzip("./maps/uscounties.zip", exdir="./maps")
+  dir("./maps/")
+  us_counties = readOGR(dsn="./maps", layer="tl_2015_us_county", stringsAsFactors = F)
+  plot(us_counties)
+  nc_counties = us_counties[us_counties$STATEFP == 37,] #look how slick this is.
+  writeOGR(nc_counties, dsn="./maps", layer="nc counties", driver="ESRI Shapefile", overwrite_layer = T)
+}
+
+#.........................
+# sp way
+#.........................
+nc_counties = readOGR(dsn="./maps", layer="nc counties", stringsAsFactors = F) # the sp way
+class(nc_counties)
+plot(nc_counties)
+str(nc_counties, max.level = 2)
+# ... or us tigris package. Also see acs package
+
+#remember to merge with the spatial object, not just the data slot, to keep it from reordering!
+nc_counties = merge(nc_counties, county_results, by.x="GEOID", by.y="FIPS")
+head(nc_counties@data)
+# Quick sp plots
+spplot(nc_counties, "pct_pnc5", main="% Early PNC") # on spplot: https://edzer.github.io/sp/
+spplot(nc_counties, "pct_preterm", main="% Preterm")
+spplot(nc_counties, c("pct_pnc5", "pct_preterm"))
+writeOGR(nc_counties, dsn="./maps", layer="nc counties w data", driver="ESRI Shapefile", overwrite_layer = T)
+
+sum(nc_counties@data$n)
+sum(nc_counties[nc_counties$NAME %in% c("Orange", "Durham", "Chatham"),]$n)
+
+### A little prettier
+nc_counties$pct_earlyPNC_f = cut(nc_counties$pct_pnc5, 7)
+spplot(nc_counties, "pct_earlyPNC_f",
+       col.regions=brewer.pal(7,"RdYlGn"),
+       main="% of Births with Early Start of Prenatal Care (<5mo)")
+
+### Using base plot()
+display.brewer.all()
+nc_counties$pct_preterm_colors = as.character(cut(nc_counties$pct_preterm, 10, labels = brewer.pal(10,"RdYlGn")))
+plot(nc_counties, co=nc_counties$pct_preterm_colors, main="% Preterm birth")
+county_centroids = gCentroid(nc_counties, byid = T) # aaand here's why R's great as a GIS.
+text(county_centroids@coords, labels=as.character(nc_counties$NAME), cex=0.4)
+
+### Using ggplot() OLD style - nice, but slow
+names(nc_counties@data)
+nc_counties_fort = fortify(nc_counties, region = "GEOID") # This is very old fashioned
+str(nc_counties_fort)
+nc_counties_fort = merge(nc_counties_fort, nc_counties, by.x="id", by.y="GEOID")
+head(nc_counties_fort)
+cut(nc_counties$pct_pnc5, 5)
+pretty(nc_counties$pct_pnc5) #funny name
+nc_counties_fort$pct_pnc5_f = cut(nc_counties_fort$pct_pnc5, breaks=pretty(nc_counties_fort$pct_pnc5))
+table(nc_counties_fort$pct_pnc5_f)
+#grep to make , a -_ move to top, like
+#http://time_com/4394141/zika-abortion-usa/
+mymap =
+  ggplot(nc_counties_fort, aes(x=long, y=lat, group=group, fill=pct_pnc5_f)) +
+  geom_polygon(color="white")+coord_map()+
+  labs(title="Early prenatal care by county in North Carolina, 2012",
+       subtitle="This ggplot is gorgeous, holy cow",
+       x="", y="")+
+  scale_fill_brewer(name="% Early Prenatal Care", type="seq", palette ="Greens")+
+  #scale_fill_gradient(name="% Early Prenatal Care", low = "white", high = "dark green")+
+  theme_map()+theme(legend.position="right")
+#theme_map()+theme(legend_position="bottom")+guides(fill=guide_legend(nrow=1))#right")
+mymap
+# http://novyden.blogspot.com/2013/09/how-to-expand-color-palette-with-ggplot.html
+mymap+theme_minimal() #also a nice one / clean.
+
+# tmap
+tm_shape(nc_counties)+ # skip the whole fortify thing.
+  tm_fill("pct_pnc5", title="% Early PNC")+
+  tm_borders()+ #could add more layers with tm_shape and then tm_whatever...
+  tm_layout(main.title="tmap: % Early Prenatal Care by County")
+# ^ Note ggplot like syntax.
+
+# sf - the current best practice
+library(sf)
+nc_counties_sf = st_read("./maps/nc counties.shp", stringsAsFactors = F)
+str(nc_counties_sf) # a dataframe
+plot(nc_counties_sf)
+
+nc_counties_sf %>% # dplyr the df right into ggplot!
+  mutate(GEOID = as.numeric(GEOID)) %>%
+  left_join(county_results, by=c("GEOID"="FIPS")) %>%
+  ggplot(aes(fill = pct_pnc5))+
+  geom_sf()+ # default is that geometry "aesthetic" is in geometry column. Which it is!
+  theme_minimal() + # alternatives here
+  labs(title="sf and ggplot - perhaps best for now: % Early PNC ")
+# make_EPSG() # or lookup
+
+nc_counties_sf %>% # dplyr the df right into ggplot!
+  mutate(GEOID = as.numeric(GEOID)) %>%
+  left_join(county_results, by=c("GEOID"="FIPS")) %>%
+  mutate(preterm_quintile = cut(pct_preterm, quantile(pct_preterm, seq(0,1,.2)))) %>%
+  group_by(preterm_quintile) %>% # how cool is this.
+  summarise(pct_pnc5 = mean(pct_pnc5, na.rm=T)) %>%
+  ggplot(aes(fill = pct_pnc5))+
+  geom_sf()
+#................................
+
+#................................
+# Maps 2 - spatial analysis ####
+#................................
+# Demos: transform, gTouches,
+proj4string(nc_counties) #or nc_counties@proj4string
+nc_stateplane_proj = "+proj=lcc +lat_1=36.16666666666666 +lat_2=34.33333333333334 +lat_0=33.75 +lon_0=-79 +x_0=609601.2192024384 +y_0=0 +ellps=GRS80 +datum=NAD83 +to_meter=0.3048006096012192 +no_defs"
+nc_counties_stateplane = spTransform(nc_counties, nc_stateplane_proj)
+
+# centroids
+county_cents = gCentroid(nc_counties_stateplane, byid=T) #just the spatial object
+county_cents_sp = SpatialPointsDataFrame(county_cents, data=nc_counties@data) #need to add back the data
+
+# buffers
+plot(nc_counties_stateplane); plot(county_cents, add=T)
+plot(county_cents_sp[county_cents_sp$NAME == "Orange",], col="blue", add=T, pch="0")
+plot(gBuffer(county_cents, width = 10*5280, byid = T), add=T) #10 mi buffers
+
+# spatial relationships - touching?
+plot(nc_counties[county_cents_sp$NAME == "Orange",])
+orange_neighbors = gTouches(nc_counties[county_cents_sp$NAME == "Orange",], nc_counties, byid = T)
+str(orange_neighbors) # note it's a matrix
+plot(nc_counties); plot(nc_counties[orange_neighbors[,1],], col="blue", add=T)
+
+# A question of hospitals
+# http://data.nconemap.gov/geoportal/rest/find/document?searchText=Hospitals&f=searchpage&f=searchpage
+med_facilities = read_sf("./maps/medfacs.shp", stringsAsFactors = F) # the sf way
+plot(nc_counties); plot(med_facilities %>% st_geometry(), add=T)
+nc_counties_sf = nc_counties %>% st_as_sf()
+st_crs(nc_counties_sf); st_crs(med_facilities) # oops! projection mismatch!
+
+med_facilities = med_facilities %>% st_transform(crs = nc_stateplane_proj)
+nc_counties_sf = nc_counties_sf %>% st_transform(crs = nc_stateplane_proj)
+plot(nc_counties_sf %>% st_geometry()); plot(med_facilities %>% st_geometry(), add=T, col="blue", pch=".")
+
+#what centroids are 50m from a hospital?
+head(med_facilities)
+table(med_facilities$STYPE)
+hospitals = med_facilities[med_facilities$STYPE == "Hospital",] # nice!
+
+# don't have birth locations - let's use centroids as a proxy
+dist_matrix = st_distance(county_centroids %>% spTransform(nc_stateplane_proj) %>% st_as_sf, hospitals)
+dim(dist_matrix)
+dist_matrix[1,]
+within_5mi = function(x){any(x<=5*5280)}
+apply(dist_matrix, 1, within_5mi) # can colbind this back together.
+
+dist_list = st_is_within_distance(county_centroids %>% spTransform(nc_stateplane_proj) %>% st_as_sf,
+                                  hospitals, 5*5280)
+map_lgl(dist_list, ~ length(.x)>0)
+
+
+# spatial over... so many ways
+hold = st_within(hospitals, nc_counties_sf)
+str(hold) # what do we know that can work with lists?
+unlist(hold) # here's one way!
+map_int(hold, ~.x[[1]]) # here's another flexible way.
+
+save(list = c("nc_counties", "nc_counties_sf", "county_results", "med_facilities", "nc_stateplane_proj"), file = "map_parts.rdata")
+#.................................................
+# Notes
+# http://www.kevjohnson.org/making-maps-in-r/
+# https://www.google.com/search?q=north+carolina+counties+table&tbm=isch&tbo=u&source=univ&sa=X&ved=0ahUKEwiLnYyDxNbNAhVQzGMKHUAUD4kQsAQIHQ&biw=1536&bih=716
+#.................................................
+
+
+#............................................
+## MISC: Clusters & Trees ####
+#............................................
+# kmeans
+to_model = births[,c("pnc5_f", "preterm_f", "smoker", "race_f", "cores", "mage")]
+to_model = na.omit(to_model)
+head(to_model)
+scale_01 = function(x){
+  x = as.numeric(x);
+  x = (x-min(x, na.rm = T)) / (max(x, na.rm = T) - min(x, na.rm = T))
+  return(x)
+}
+to_model_01 = data.frame(lapply(to_model, FUN=scale_01)) #note why apply doesn't work - matrix first
+summary(to_model_01)
+km = kmeans(to_model_01[,names(to_model_01) != "preterm_f"], 2)
+to_model$cluster = km$cluster
+table(to_model$cluster, to_model$preterm_f)
+prop.table(table(to_model$cluster, to_model$preterm_f), margin = 2) #meh. cluster 1 is a little more preterm.
+
+km2 = kmeans(to_model_01[,names(to_model_01) != "preterm_f"], 20)
+to_model$cluster2 = km2$cluster
+prop.table(table(to_model$cluster2, to_model$preterm_f), margin = 1)*100 #meh. cluster 1 is a little more preterm.
+
+to_model %>% group_by(cluster2) %>%
+  summarise(n = n(), pct_preterm=sum(preterm_f=="preterm", na.rm=T)/n)
+# https://datascience.stackexchange.com/questions/22/k-means-clustering-for-mixed-numeric-and-categorical-data?newreg=e85b257b6b524d768e3a8cff706840eb
+#............................................
+library(rpart)
+library(rattle)
+
+names(to_model)
+dim(to_model)
+glm1 = glm(data = to_model, preterm_f ~ pnc5_f + smoker + race_f + mage, family=binomial("logit"))
+to_model$glm1_pred = predict(glm1, to_model, "response")
+table(to_model$glm1_pred, to_model$preterm_f)
+
+str(to_model)
+tree1 = rpart(data = to_model, preterm_f ~ pnc5_f + smoker + race_f +mage, method="class", parms=list(split="information"),
+              control=rpart.control(minsplit=2, minbucket=1, cp=0.0001)) #no interaction terms, though. dropped cores. need minbucket.
+summary(tree1)
+plot(tree1)
+fancyRpartPlot(tree1)
+to_model$rpart_pred = predict(tree1, to_model[,c("pnc5_f","smoker","race_f", "mage")], "class")
+to_model$rpart_pred
+table(to_model$rpart_pred, to_model$preterm_f)
+table(to_model$rpart_pred)
+# give each the same half, then predict and compare accuracy?
+#............................................
+
+#............................................
+# MISC: PARKING LOT (useful code without questions) ####
+#............................................
+
+# Print some useful Table 1 versions
+table(births$mage)
+births$mage_cat_f = cut(births$mage, seq(9, 59, by=10))
+table(births$mage, births$mage_cat_f)
+
+#Outcome strata - preterm
+t1=CreateTableOne(data=births[,c("pnc5_f", "preterm_f", "smoker","sex", "race_f", "wksgest", "mage", "meduc")],
+                  strata=c("preterm_f"), includeNA = T, argsNonNormal = c("wksgest"))
+print(t1,showAllLevels=T )
+# Thinking ahead to EMM: Race/eth variable
+t2=CreateTableOne(data=births[,c("pnc5_f", "preterm_f", "smoker","sex", "race_f", "wksgest", "mage", "meduc")],
+                  strata=c("race_f"), includeNA = T, argsNonNormal = c("wksgest"))
+print(t2, showAllLevels=T) #print.TableOne # let's see the guts.
+# Mage - thinking ahead to functional form at least...
+t3=CreateTableOne(data=births[,c("pnc5_f", "preterm_f", "smoker","sex", "race_f", "wksgest", "mage", "meduc", "mage_cat_f")],
+                  strata=c("mage_cat_f"), includeNA = T, argsNonNormal = c("wksgest"))
+print(t3) #print.TableOne # let's see the guts.
+
+#How to get this to excel... could be improved
+write.table(print(t2, showAllLevels=T, quote = T), "clipboard", sep="\t")
+# ......................................
+
+
+#............................................
+# MISC: Bias variance trade off... ####
+#............................................
 
 # ......................................
-# Assignments # This section is YUCK!!!! ####
+# MISC: SAS Assignments # This section is YUCK!!!! ####
 # ......................................
 ### A1
 hist(births$weeks)
@@ -883,224 +1150,3 @@ e=epi.2by2(t, outcome = "as.rows", units=1) #frustratingly confusing.
 epitab(t)
 #make incident table.
 #............................................
-
-
-#............................................
-## Clusters & Trees ####
-#............................................
-# kmeans
-to_model = births[,c("pnc5_f", "preterm_f", "smoker", "race_f", "cores", "mage")]
-to_model = na.omit(to_model)
-head(to_model)
-scale_01 = function(x){
-  x = as.numeric(x);
-  x = (x-min(x, na.rm = T)) / (max(x, na.rm = T) - min(x, na.rm = T))
-  return(x)
-}
-to_model_01 = data.frame(lapply(to_model, FUN=scale_01)) #note why apply doesn't work - matrix first
-summary(to_model_01)
-km = kmeans(to_model_01[,names(to_model_01) != "preterm_f"], 2)
-to_model$cluster = km$cluster
-table(to_model$cluster, to_model$preterm_f)
-prop.table(table(to_model$cluster, to_model$preterm_f), margin = 2) #meh. cluster 1 is a little more preterm.
-
-km2 = kmeans(to_model_01[,names(to_model_01) != "preterm_f"], 20)
-to_model$cluster2 = km2$cluster
-prop.table(table(to_model$cluster2, to_model$preterm_f), margin = 1)*100 #meh. cluster 1 is a little more preterm.
-
-to_model %>% group_by(cluster2) %>%
-  summarise(n = n(), pct_preterm=sum(preterm_f=="preterm", na.rm=T)/n)
-# https://datascience.stackexchange.com/questions/22/k-means-clustering-for-mixed-numeric-and-categorical-data?newreg=e85b257b6b524d768e3a8cff706840eb
-#............................................
-library(rpart)
-library(rattle)
-
-names(to_model)
-dim(to_model)
-glm1 = glm(data = to_model, preterm_f ~ pnc5_f + smoker + race_f + mage, family=binomial("logit"))
-to_model$glm1_pred = predict(glm1, to_model, "response")
-table(to_model$glm1_pred, to_model$preterm_f)
-
-str(to_model)
-tree1 = rpart(data = to_model, preterm_f ~ pnc5_f + smoker + race_f +mage, method="class", parms=list(split="information"),
-              control=rpart.control(minsplit=2, minbucket=1, cp=0.0001)) #no interaction terms, though. dropped cores. need minbucket.
-summary(tree1)
-plot(tree1)
-fancyRpartPlot(tree1)
-to_model$rpart_pred = predict(tree1, to_model[,c("pnc5_f","smoker","race_f", "mage")], "class")
-to_model$rpart_pred
-table(to_model$rpart_pred, to_model$preterm_f)
-table(to_model$rpart_pred)
-# give each the same half, then predict and compare accuracy?
-#............................................
-
-
-
-#............................................
-## Map makin' ####
-#............................................
-# Add tmap:: library(sp) #for spatial objects
-library(sp)
-library(rgdal) #for reading and writing shapefiles
-library(rgeos) #for spatial tools like gCentroid
-library(RColorBrewer) #For better, much better color ramps
-#library(maps) # http://dmcglinn.github.io/quant_methods/lessons/shapefiles_and_rasters.html
-library(tmap)
-
-head(county_data) #formatter[formatter$variable=="cores",]
-
-getwd()
-if(!file.exists("./maps/nc counties.shp")){ #Run Once to get NC Counties.
-  dir.create("./maps/")
-  # ftp://ftp2.census.gov/geo/tiger/TIGER2016/ or
-  # https://www.census.gov/cgi-bin/geo/shapefiles/index.php
-  download.file("ftp://ftp2.census.gov/geo/tiger/TIGER2015/COUNTY/tl_2015_us_county.zip", "./maps/uscounties.zip")
-  unzip("./maps/uscounties.zip", exdir="./maps")
-  dir("./maps/")
-  us_counties = readOGR(dsn="./maps", layer="tl_2015_us_county", stringsAsFactors = F)
-  plot(us_counties)
-  nc_counties = us_counties[us_counties$STATEFP == 37,] #look how slick this is.
-  writeOGR(nc_counties, dsn="./maps", layer="nc counties", driver="ESRI Shapefile", overwrite_layer = T)
-}
-nc_counties = readOGR(dsn="./maps", layer="nc counties", stringsAsFactors = F)
-class(nc_counties)
-plot(nc_counties)
-str(nc_counties, max.level = 2)
-# ... or us tigris package. Also see acs package
-
-#remember to merge with the spatial object, not just the data slot, to keep it from reordering!
-nc_counties = merge(nc_counties, county_df, by.x="GEOID", by.y="FIPS")
-head(nc_counties@data)
-spplot(nc_counties, "pct_earlyPNC", main="% Early PNC") # on spplot: https://edzer.github.io/sp/
-spplot(nc_counties, "pct_preterm", main="% Preterm")
-spplot(nc_counties, c("pct_earlyPNC", "pct_preterm")) # on spplot: https://edzer.github.io/sp/
-writeOGR(nc_counties, dsn="./maps", layer="nc counties w data", driver="ESRI Shapefile", overwrite_layer = T)
-
-sum(nc_counties@data$n)
-sum(nc_counties[nc_counties$NAME %in% c("Orange", "Durham", "Chatham"),]$n)
-
-
-### Using base plot()
-par(mfrow =c(1,1)) # issues with multiplotting from sp, above. Reset plot window to 1x1 plot
-display.brewer.all()
-nc_counties$pct_preterm_colors = as.character(cut(nc_counties$pct_preterm, 10, labels = brewer.pal(10,"RdYlGn")))
-plot(nc_counties, co=nc_counties$pct_preterm_colors, main="% Preterm birth")
-county_centroids = gCentroid(nc_counties, byid = T)
-text(county_centroids@coords, labels=as.character(nc_counties$NAME), cex=0.4)
-
-
-### Using spplot()
-spplot(nc_counties, "pct_earlyPNC") #ugh. gorgeous
-nc_counties$pct_earlyPNC_f = cut(nc_counties$pct_earlyPNC, 7)
-spplot(nc_counties, "pct_earlyPNC_f",
-       col.regions=brewer.pal(7,"RdYlGn"),
-       main="% of Births with Early Start of Prenatal Care (<5mo)")
-
-
-### Using ggplot() OLD style - nice, but slow
-names(nc_counties@data)
-nc_counties_fort = fortify(nc_counties, region = "GEOID")
-str(nc_counties_fort)
-nc_counties_fort = merge(nc_counties_fort, nc_counties, by.x="id", by.y="GEOID")
-#nc.counties.fort = nc.counties.fort[order(nc.counties.fort$order),]
-names(nc_counties_fort)
-library(ggthemes) # for theme_map
-library(mapproj)
-cut(nc_counties$pct_earlyPNC, 5)
-pretty(nc_counties$pct_earlyPNC) #funny name
-nc_counties_fort$pct_pnc5_f = cut(nc_counties_fort$pct_earlyPNC, breaks=pretty(nc_counties_fort$pct_earlyPNC))
-table(nc_counties_fort$pct_pnc5_f)
-#grep to make , a -_ move to top, like
-#http://time_com/4394141/zika-abortion-usa/
-mymap =
-  ggplot(nc_counties_fort, aes(x=long, y=lat, group=group, fill=pct_pnc5_f)) +
-  geom_polygon(color="white")+coord_map()+
-  labs(title=paste0("Early prenatal care by county in North Carolina,", births$byear[1]),
-       subtitle="This ggplot is gorgeous, holy cow",
-       x="", y="")+
-  scale_fill_brewer(name="% Early Prenatal Care", type="seq", palette ="Greens")+
-  #scale_fill_gradient(name="% Early Prenatal Care", low = "white", high = "dark green")+
-  theme_map()+theme(legend.position="right")
-#theme_map()+theme(legend_position="bottom")+guides(fill=guide_legend(nrow=1))#right")
-mymap
-# http://novyden.blogspot.com/2013/09/how-to-expand-color-palette-with-ggplot.html
-mymap+theme_minimal() #also a nice one / clean.
-
-# tmap
-tm_shape(nc_counties)+
-  tm_fill("pct_earlyPNC", title="% Early PNC")+
-  tm_borders()+ #could add more layers with tm_shape and then tm_whatever...
-  tm_layout(main.title="tmap: % Early Prenatal Care by County")
-
-# sf - the current best
-library(sf)
-nc_counties_sf = st_read("./maps/nc counties.shp", stringsAsFactors = F)
-str(nc_counties_sf) # a dataframe
-plot(nc_counties_sf)
-nc_counties_sf %>% # dplyr that map!
-  mutate(GEOID = as.numeric(GEOID)) %>%
-  left_join(county_df, by=c("GEOID"="FIPS")) %>%
-  ggplot(aes(fill = pct_earlyPNC))+
-  geom_sf()+
-  labs(title="sf and ggplot - perhaps best for now: % Early PNC ")
-
-
-# Demos: transform, gTouches,
-proj4string(nc_counties) #or nc_counties@proj4string
-nc_stateplane_proj = "+proj=lcc +lat_1=36.16666666666666 +lat_2=34.33333333333334 +lat_0=33.75 +lon_0=-79 +x_0=609601.2192024384 +y_0=0 +ellps=GRS80 +datum=NAD83 +to_meter=0.3048006096012192 +no_defs"
-nc_counties_stateplane = spTransform(nc_counties, nc_stateplane_proj)
-
-county_cents = gCentroid(nc_counties_stateplane, byid=T) #just the spatial object
-county_cents_sp = SpatialPointsDataFrame(county_cents, data=nc_counties@data) #need to add back the data
-
-plot(nc_counties_stateplane); plot(county_cents, add=T)
-plot(county_cents_sp[county_cents_sp$NAME == "Orange",], col="blue", add=T, pch="0")
-plot(gBuffer(county_cents, width = 10*5280, byid = T), add=T) #10 mi buffers
-
-plot(nc_counties[county_cents_sp$NAME == "Orange",])
-orange_neighbors = gTouches(nc_counties[county_cents_sp$NAME == "Orange",], nc_counties, byid = T)
-str(orange_neighbors) # note it's a matrix
-plot(nc_counties); plot(nc_counties[orange_neighbors[,1],], col="blue", add=T)
-
-
-# make_EPSG() # or lookup
-
-###############################################################################
-# Notes
-# http://www.kevjohnson.org/making-maps-in-r/
-# https://www.google.com/search?q=north+carolina+counties+table&tbm=isch&tbo=u&source=univ&sa=X&ved=0ahUKEwiLnYyDxNbNAhVQzGMKHUAUD4kQsAQIHQ&biw=1536&bih=716
-###############################################################################
-
-
-
-
-
-
-
-
-#............................................
-# PARKING LOT (useful code without questions)
-#............................................
-
-# Print some useful Table 1 versions
-table(births$mage)
-births$mage_cat_f = cut(births$mage, seq(9, 59, by=10))
-table(births$mage, births$mage_cat_f)
-
-#Outcome strata - preterm
-t1=CreateTableOne(data=births[,c("pnc5_f", "preterm_f", "smoker","sex", "race_f", "wksgest", "mage", "meduc")],
-                  strata=c("preterm_f"), includeNA = T, argsNonNormal = c("wksgest"))
-print(t1,showAllLevels=T )
-# Thinking ahead to EMM: Race/eth variable
-t2=CreateTableOne(data=births[,c("pnc5_f", "preterm_f", "smoker","sex", "race_f", "wksgest", "mage", "meduc")],
-                  strata=c("race_f"), includeNA = T, argsNonNormal = c("wksgest"))
-print(t2, showAllLevels=T) #print.TableOne # let's see the guts.
-# Mage - thinking ahead to functional form at least...
-t3=CreateTableOne(data=births[,c("pnc5_f", "preterm_f", "smoker","sex", "race_f", "wksgest", "mage", "meduc", "mage_cat_f")],
-                  strata=c("mage_cat_f"), includeNA = T, argsNonNormal = c("wksgest"))
-print(t3) #print.TableOne # let's see the guts.
-
-#How to get this to excel... could be improved
-write.table(print(t2, showAllLevels=T, quote = T), "clipboard", sep="\t")
-# ......................................
-

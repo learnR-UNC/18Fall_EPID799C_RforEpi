@@ -946,10 +946,12 @@ nc_counties_sf %>% # dplyr the df right into ggplot!
 #................................
 # Maps 2 - spatial analysis ####
 #................................
+
 # Demos: transform, gTouches,
 proj4string(nc_counties) #or nc_counties@proj4string
 nc_stateplane_proj = "+proj=lcc +lat_1=36.16666666666666 +lat_2=34.33333333333334 +lat_0=33.75 +lon_0=-79 +x_0=609601.2192024384 +y_0=0 +ellps=GRS80 +datum=NAD83 +to_meter=0.3048006096012192 +no_defs"
 nc_counties_stateplane = spTransform(nc_counties, nc_stateplane_proj)
+# Examples: http://spatialreference.org/ref/epsg/wgs-84/
 
 # centroids
 county_cents = gCentroid(nc_counties_stateplane, byid=T) #just the spatial object
@@ -1000,6 +1002,30 @@ str(hold) # what do we know that can work with lists?
 unlist(hold) # here's one way!
 map_int(hold, ~.x[[1]]) # here's another flexible way.
 
+# What about spatial autocorrelation? (the sp way)
+library(spdep)
+head(nc_counties@data)
+# Neighbors
+nb = poly2nb(nc_counties, row.names=nc_counties$NAME)
+summary(nb)
+str(nb)
+plot(nc_counties); plot(nb, coordinates(nc_counties), col="red", add=T)
+
+weight_list = nb2listw(nb, style="B")
+moran(nc_counties$pct_preterm, weight_list, n=length(weight_list$neighbours),
+      S0 = Szero(weight_list)) # Not much clustering, close to 0
+moran(nc_counties$pct_pnc5, weight_list, n=length(weight_list$neighbours),
+      S0 = Szero(weight_list)) # Not much clustering, close to 0
+
+# But maybe a statistically significant (do we care?) amount?
+# Linear regression method
+moran.test(nc_counties$pct_preterm, weight_list, randomisation=FALSE)
+moran.test(nc_counties$pct_pnc5, weight_list, randomisation=FALSE)
+# Monte Carlo
+moran.mc(nc_counties$pct_preterm, weight_list, nsim=99)
+moran.mc(nc_counties$pct_pnc5, weight_list, nsim=99)
+
+# Save out
 save(list = c("nc_counties", "nc_counties_sf", "county_results", "med_facilities", "nc_stateplane_proj"), file = "map_parts.rdata")
 #.................................................
 # Notes

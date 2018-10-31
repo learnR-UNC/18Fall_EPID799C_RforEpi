@@ -933,6 +933,13 @@ nc_counties_sf %>% # dplyr the df right into ggplot!
   labs(title="sf and ggplot - perhaps best for now: % Early PNC ")
 # make_EPSG() # or lookup
 
+#................................
+
+#................................
+# Maps 2 - spatial analysis ####
+#................................
+
+# Spatial merging
 nc_counties_sf %>% # dplyr the df right into ggplot!
   mutate(GEOID = as.numeric(GEOID)) %>%
   left_join(county_results, by=c("GEOID"="FIPS")) %>%
@@ -941,13 +948,9 @@ nc_counties_sf %>% # dplyr the df right into ggplot!
   summarise(pct_pnc5 = mean(pct_pnc5, na.rm=T)) %>%
   ggplot(aes(fill = pct_pnc5))+
   geom_sf()
-#................................
+# ^ or spatial union, etc.
 
-#................................
-# Maps 2 - spatial analysis ####
-#................................
-
-# Demos: transform, gTouches,
+# Demos: transform, centroids, buffers, touches....
 proj4string(nc_counties) #or nc_counties@proj4string
 nc_stateplane_proj = "+proj=lcc +lat_1=36.16666666666666 +lat_2=34.33333333333334 +lat_0=33.75 +lon_0=-79 +x_0=609601.2192024384 +y_0=0 +ellps=GRS80 +datum=NAD83 +to_meter=0.3048006096012192 +no_defs"
 nc_counties_stateplane = spTransform(nc_counties, nc_stateplane_proj)
@@ -997,7 +1000,9 @@ dist_matrix[1,]
 within_5mi = function(x){any(x<=5*5280)}
 apply(dist_matrix, 1, within_5mi) # can colbind this back together.
 
-dist_list = st_is_within_distance(county_centroids %>% spTransform(nc_stateplane_proj) %>% st_as_sf,
+dist_list = st_is_within_distance(county_centroids %>%
+                                    spTransform(nc_stateplane_proj) %>%
+                                    st_as_sf(),
                                   hospitals, 5*5280)
 map_lgl(dist_list, ~ length(.x)>0)
 
@@ -1033,12 +1038,12 @@ tibble(orig = nc_counties$pct_pnc5,
   scale_y_continuous(limits=c(75,100))
 
 # But maybe a statistically significant (do we care?) amount?
-# Linear regression method
-moran.test(nc_counties$pct_preterm, weight_list, randomisation=FALSE)
-moran.test(nc_counties$pct_pnc5, weight_list, randomisation=FALSE)
 # Monte Carlo
 moran.mc(nc_counties$pct_preterm, weight_list, nsim=99)
 moran.mc(nc_counties$pct_pnc5, weight_list, nsim=99)
+# ^ particularly useful: check to see if model residuals are clustered spatially.
+# May be a sign you're missing something.
+
 
 # Save out
 save(list = c("nc_counties", "nc_counties_sf", "county_results", "med_facilities", "nc_stateplane_proj"), file = "map_parts.rdata")

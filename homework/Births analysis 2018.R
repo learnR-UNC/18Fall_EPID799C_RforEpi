@@ -979,6 +979,12 @@ med_facilities = med_facilities %>% st_transform(crs = nc_stateplane_proj)
 nc_counties_sf = nc_counties_sf %>% st_transform(crs = nc_stateplane_proj)
 plot(nc_counties_sf %>% st_geometry()); plot(med_facilities %>% st_geometry(), add=T, col="blue", pch=".")
 
+# spatial subsetting. this is cooool.
+plot(med_facilities %>% st_geometry())
+orange_county = nc_counties_sf[nc_counties_sf$NAME=="Orange",]
+plot(orange_county %>% st_geometry())
+plot(med_facilities[orange_county,], max.plot=1, add=T)
+
 #what centroids are 50m from a hospital?
 head(med_facilities)
 table(med_facilities$STYPE)
@@ -995,7 +1001,6 @@ dist_list = st_is_within_distance(county_centroids %>% spTransform(nc_stateplane
                                   hospitals, 5*5280)
 map_lgl(dist_list, ~ length(.x)>0)
 
-
 # spatial over... so many ways
 hold = st_within(hospitals, nc_counties_sf)
 str(hold) # what do we know that can work with lists?
@@ -1011,11 +1016,21 @@ summary(nb)
 str(nb)
 plot(nc_counties); plot(nb, coordinates(nc_counties), col="red", add=T)
 
-weight_list = nb2listw(nb, style="B")
+#
+weight_list = nb2listw(nb, style="B") # Binary coding
 moran(nc_counties$pct_preterm, weight_list, n=length(weight_list$neighbours),
       S0 = Szero(weight_list)) # Not much clustering, close to 0
 moran(nc_counties$pct_pnc5, weight_list, n=length(weight_list$neighbours),
       S0 = Szero(weight_list)) # Not much clustering, close to 0
+
+# Quick graph
+tibble(orig = nc_counties$pct_pnc5,
+       neighbors = lag.listw(nb2listw(nb, style="W"), nc_counties$pct_pnc5)) %>%
+  ggplot(aes(orig, neighbors))+
+  geom_point()+
+  geom_smooth(method="lm")+
+  scale_x_continuous(limits=c(75,100))+
+  scale_y_continuous(limits=c(75,100))
 
 # But maybe a statistically significant (do we care?) amount?
 # Linear regression method

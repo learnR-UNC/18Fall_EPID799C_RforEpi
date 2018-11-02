@@ -1,5 +1,5 @@
 ---
-title: "BBBirths Analysis 2012 Markdown for 799C 2018"
+title: "Births Analysis 2012 Markdown for 799C 2018"
 author: "Mike Dolan Fliss, Nick Brazeau, & Sara Levintow"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 output:
@@ -282,7 +282,7 @@ births$preterm <- ifelse(births$wksgest >= 20 &births$wksgest < 37, 1,
 births$preterm_f <- factor(births$preterm, levels=c(0,1), labels=c("term", "preterm"))
 
 #### iv
-births$preterm_f <- cut(births$wksgest, breaks = c(036,99), labels =  c("preterm", "term")) #should be no births too young at this point
+births$preterm_f <- cut(births$wksgest, breaks = c(0,36,99), labels =  c("preterm", "term")) #should be no births too young at this point
 
 # (HW1.Q5 continued) 
 ### C. Plurality (covariate) 
@@ -828,4 +828,230 @@ ggplot(aes(county_name_ord, value, fill=econ_tier)) +
 
 # Homework 4
 ## Homework 4, Part 1
+
+### Question 1, Summary Table for Crude Effects 
+1.	Create a summary data.frame/table for crude effects: Using either dplyr:: functions or table() and prop.table() as we did in class, report the effect of early prenatal care on preterm birth by: 
+	1.	the crude risk difference
+	2. the crude risk ratio 
+	3. the crude odds ratio 
+
+
+<div class="fold o"> 
+```{r, echo=T, warning=F, message=F, results='asis', fig.width=11, fig.height=8}
+# Crude effects #HW4.Q1
+table(births$pnc5_f, births$preterm_f)
+prop.table(table(births$pnc5_f, births$preterm_f), margin = 1) #risks
+pt = prop.table(table(births$pnc5_f, births$preterm_f), margin = 1)
+pt[2,1]-pt[1,1] #(HW4.1.1A)
+pt[2,1]/pt[1,1] #(HW4.1.1B)
+(pt[2,1]/pt[1,1])/(pt[2,2]/pt[1,2]) #(HW4.1.1C)
+# For tabular effects, see epi2by2 and epitools packages... or not. It is very "particular"
+
+```
+</div>
+
+
+### Question 2, Summary Table for EMM 
+1.  Create a summary data.frame/table to report race-ethnicity specific crude RDs: again by using dplyr or (in this case) a three dimensional table()/prop.table(), report the risk difference effect of prenatal care on preterm birth by race-ethnicity status. Paste that table or text below.
+
+
+<div class="fold o"> 
+```{r, echo=T, warning=F, message=F, results='asis', fig.width=11, fig.height=8}
+pt2 = prop.table(table(births$pnc5_f, births$preterm_f, births$raceeth_f),
+                 margin = c(1,3)) #(HW4.1.2)
+
+knitr::kable(pt2)
+
+
+# ptb %>% 
+#   dplyr::select(preterm, pnc5, mrace, raceeth_f) %>% 
+#   dplyr::group_by(raceeth_f) %>% 
+#   dplyr::summarise(CrudeRD = 
+#                      prop.table(xtabs(~pnc5 + preterm), margin = 1)[2,2] - prop.table(xtabs(~pnc5 + preterm), margin = 1)[1,2])
+  
+  
+
+```
+</div>
+
+
+### Question 3, Plot EMM 
+1.  Create a graphic like that below showing the risk prevalence by exposure status and race-ethnicity.    
+*Hint: the line (you could also use a ribbon) is created using geom_hline(). The text is from the annotate() function, which can be used to place any single geometry element directly on the graph without needing a data.frame or an aesthetic mapping.*
+
+
+<div class="fold o"> 
+```{r, echo=T, warning=F, message=F, results='asis', fig.width=11, fig.height=8}
+#(HW4.1.3)
+pt2_df = data.frame(pt2)
+names(pt2_df) = c("exposure", "outcome", "group", "estimate")
+ggplot(data=pt2_df[pt2_df$outcome == "preterm",],
+       aes(x=exposure, y=estimate, color=group, group=group))+
+  geom_point()+geom_path()+geom_hline(yintercept=0.125)+
+  annotate("text", x=.7, y=.13, label="EMM note line")+
+  labs(title="Quick look at Crude EMM of RD by Race-Ethnicity", x= "Prevalence of Preterm Birth",
+       subtitle="Note possible EMM in the angle of the lines... \n ...and disparities more impactful than our intervention. ")
+
+
+```
+</div>
+
+
+
+## Homework 4, Part 2
+### Question 4, Modeling 
+1.  Using glm(), create a model object, m_crude_rd, that models the crude effect of prenatal care on preterm birth and report the risk difference (the non-intercept coefficient in the crude model when you print or ask a summary() of the model object. For risk differences, you’ll need the binomial family with the identity link. Confirm this risk difference matches your tabular result from part 1.
+
+<div class="fold o"> 
+```{r, echo=T, warning=F, message=F, results='asis', fig.width=11, fig.height=8}
+#(HW4.2.4)
+## just for demonstration purposes, have releveled the referent group for preterm (see next question below for difference)
+births$preterm_f = relevel(births$preterm_f, ref = "preterm")
+m_crude_rd = glm(data=births, preterm_f ~ pnc5_f, family=binomial(link="identity"))
+broom::tidy(m_crude_rd)
+```
+</div>
+
+### Question 5, Relevel Risk  
+1.  Your risk difference (which the non-intercept coefficient in the crude model represents) should be negative, representing the reduction in preterm birth prevalence with exposure to early prenatal care. If it isn’t, relevel your factor to provide the appropriate contrast. If you happen to coded the preterm factor correctly the first time, be sure you know how to relevel your factor to reverse the sign on the coefficient/RD.
+
+<div class="fold o"> 
+```{r, echo=T, warning=F, message=F, results='asis', fig.width=11, fig.height=8}
+#(HW4.2.5)
+# factor referrent matters! 
+births$preterm_f = relevel(births$preterm_f, ref = "term")
+m_crude_rd = glm(data=births, preterm_f ~ pnc5_f, family=binomial(link="identity"))
+broom::tidy(m_crude_rd)
+```
+</div>
+
+
+
+### Question 6, Structure of the model  
+1.	Describe the structure of the model object using str(). The model object can be large, so you may need the max.level parameter (set to 1) to reduce what’s printed. You do not have to describe every element, just the overall structure. Be able to select elements of the model structure using our usual syntax for the data structure type.
+
+<div class="fold o"> 
+```{r, echo=T, warning=F, message=F, results='asis', fig.width=11, fig.height=8}
+# HW4.2.Q6
+# str(m_crude_rd, max.level = 1)
+
+```
+</div>
+
+
+### Question 7, Confidence Intervals
+1.	Report the coefficients and confident intervals of this crude risk difference model using coef() and confint() functions.
+
+<div class="fold o"> 
+```{r, echo=T, warning=F, message=F, results='asis', fig.width=11, fig.height=8}
+# HW4.2.Q7
+coef(m_crude_rd)
+confint(m_crude_rd)
+
+```
+</div>
+
+
+### Question 8, Confidence Intervals
+1.	Use broom::tidy to turn the most commonly used model components into a data.frame. Use cbind() to combine broom::tidy()’s results with confidence intervals from conf.int() or broom:: confint_tidy()  – this is often a useful output structure for graphing.
+
+<div class="fold o"> 
+```{r, echo=T, warning=F, message=F, results='asis', fig.width=11, fig.height=8}
+# HW4.2.Q8
+broom::confint_tidy(m_crude_rd)
+broom::confint_tidy(m_crude_rd)
+
+```
+</div>
+
+
+### Question 9, Graphing Model Point Estimates  
+1.	Use ggplot2 to plot your model results (point estimate and confidence interval) and paste in here. Perhaps a geom_point()+geom_errorbar()? If you don’t do the below challenge, you’ll just have one estimate and CI. Hint: I’m using (see below) two geom_point()s – white and colored - and a geom_linerange() with standard error color - mimics Tufte style boxplots.
+
+<div class="fold o"> 
+```{r, echo=T, warning=F, message=F, results='asis', fig.width=11, fig.height=8}
+m_crude_results = data.frame(model="M1: Crude", cbind(broom::tidy(m_crude_rd), confint(m_crude_rd)), stringsAsFactors = F)[2,]
+
+# HW4.2.Q9/10
+births$mage_sq = births$mage^2 # Can also use I(), or poly() or polym(), but be mindful...
+model_vars = c("pnc5_f", "preterm_f", "raceeth_f", "smoker_f", "mage", "mage_sq") #in consideration from DAG
+model_data = births[,model_vars]
+
+m_plussmoke_rd = glm(data=births, preterm_f ~ pnc5_f + smoker_f, family=binomial(link="identity"))
+model_results = rbind(m_crude_results, data.frame(model="M2: M1+smoking", cbind(broom::tidy(m_plussmoke_rd), confint(m_plussmoke_rd)), stringsAsFactors = F)[2,])
+
+m_plusmage_rd = glm(data=births, preterm_f ~ pnc5_f + smoker_f + mage, family=binomial(link="identity"))
+model_results = rbind(model_results, data.frame(model="M3: M2+mage", cbind(broom::tidy(m_plusmage_rd), confint(m_plusmage_rd)), stringsAsFactors = F)[2,])
+
+m_plusmagesq_rd = glm(data=births, preterm_f ~ pnc5_f + smoker_f + mage + mage_sq, family=binomial(link="identity"))
+model_results = rbind(model_results, data.frame(model="M4: M3+mage_sq", cbind(broom::tidy(m_plusmagesq_rd), confint(m_plusmagesq_rd)), stringsAsFactors = F)[2,])
+
+ggplot(model_results, aes(model, estimate,color=std.error, fill=std.error))+
+  geom_linerange(aes(ymin=X2.5.., ymax=X97.5..), size=1)+
+  geom_point(shape=15, size=4, color="white")+ geom_point(shape=15)+
+  scale_y_continuous(limits=c(NA,0))+
+  labs(title="Model results", subtitle="Mirroring tufte boxplot aesthetics, see ggthemes::geom_tufteboxplot()")+
+  ggthemes::theme_tufte()
+
+```
+</div>
+
+
+
+
+
+### Question 10, Your Turn -- Graphing Model Point Estimates  
+1.	Run additional models besides the crude, then use tools like data.frame(), subset operators (for example, to just pull out the PNC coefficient results) rbind() and cbind() to  build a single data.frame of all your results, and plot them using ggplot2. Here is an example, but yours could look different.   
+  
+  
+**SEE ABOVE**
+
+### Question 11, Risk Ratios and Odds Ratios
+1.  **Optional**: Model and report the risk ratio and odds ratio with their confidence intervals using a GLM. For RRs you’ll need binomial with the log link; for ORs you’ll need binomial with logit links. You’ll need to need to exponentiate the estimates. Hint: Nesting functions can give you what you want: exp(coef(m)).
+  
+  
+<div class="fold o"> 
+```{r, echo=T, warning=F, message=F, results='asis', fig.width=11, fig.height=8}
+# HW4.3.11
+# m_crude_rr = glm(data=births, preterm_f ~ pnc5_f, family=binomial(link="log"))
+
+m_crude_or = glm(data=births, preterm_f ~ pnc5_f, family=binomial(link="logit"))
+exp(broom::confint_tidy(m_crude_or))
+exp(confint(m_crude_or))
+
+```
+</div>
+
+
+### Question 12, Likelihood Ratio Tests
+1.  Compare at least two models using Likelihood Ratio Tests (LRTs). Try anova(model1, model2, test=”LRT”). Note that you’ll need to ensure they are nested. One way to do this is to first subset your data to include just (but all) of the variables you will use in your fullest model, then use na.omit() to drop records missing any of those variables, then pass that same restricted dataset to each of your glm() calls. You may note how mage linear mage performs without magesq, for instance.
+  
+<div class="fold o"> 
+```{r, echo=T, warning=F, message=F, results='asis', fig.width=11, fig.height=8}
+# HW4.3.12
+model_data = na.omit(model_data) # also see complete.cases() for T/F vector. Nice for model comparisons where nesting is required.
+m_crude_rd = glm(data=model_data, preterm_f ~ pnc5_f, family=binomial(link="identity"))
+m_plussmoke_rd = glm(data=model_data, preterm_f ~ pnc5_f + smoker_f, family=binomial(link="identity"))
+anova(m_crude_rd, m_plussmoke_rd, test = "LRT") #Better to use bias-variance trade-off process. See EPID 718.
+
+m_plusmage_rd = glm(data=model_data, preterm_f ~ pnc5_f + smoker_f + mage, family=binomial(link="identity"))
+anova(m_plusmage_rd, m_plussmoke_rd, test = "LRT") #Better to use bias-variance trade-off process. See EPID 718.
+
+m_plusmagesq_rd = glm(data=births, preterm_f ~ pnc5_f + smoker_f + mage + mage_sq, family=binomial(link="identity"))
+anova(m_plusmagesq_rd, m_plussmoke_rd, test = "LRT") #Better to use bias-variance trade-off process. See EPID 718.
+
+
+
+```
+</div>
+
+
+
+
+
+
+
+
+
+
 

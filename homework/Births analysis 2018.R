@@ -953,12 +953,15 @@ nc_counties_sf %>% # dplyr the df right into ggplot!
 # Demos: transform, centroids, buffers, touches....
 proj4string(nc_counties) #or nc_counties@proj4string
 nc_stateplane_proj = "+proj=lcc +lat_1=36.16666666666666 +lat_2=34.33333333333334 +lat_0=33.75 +lon_0=-79 +x_0=609601.2192024384 +y_0=0 +ellps=GRS80 +datum=NAD83 +to_meter=0.3048006096012192 +no_defs"
-nc_counties_stateplane = spTransform(nc_counties, nc_stateplane_proj)
+nc_counties_stateplane =
+  spTransform(nc_counties, nc_stateplane_proj)
 # Examples: http://spatialreference.org/ref/epsg/wgs-84/
 
 # centroids
 county_cents = gCentroid(nc_counties_stateplane, byid=T) #just the spatial object
-county_cents_sp = SpatialPointsDataFrame(county_cents, data=nc_counties@data) #need to add back the data
+class(county_cents)
+county_cents_sp = SpatialPointsDataFrame(county_cents,
+                                         data=nc_counties@data) #need to add back the data
 
 # buffers
 plot(nc_counties_stateplane); plot(county_cents, add=T)
@@ -967,6 +970,7 @@ plot(gBuffer(county_cents, width = 10*5280, byid = T), add=T) #10 mi buffers
 
 # spatial relationships - touching?
 plot(nc_counties[county_cents_sp$NAME == "Orange",])
+plot(nc_counties[nc_counties$NAME == "Orange",])
 orange_neighbors = gTouches(nc_counties[county_cents_sp$NAME == "Orange",], nc_counties, byid = T)
 str(orange_neighbors) # note it's a matrix
 plot(nc_counties); plot(nc_counties[orange_neighbors[,1],], col="blue", add=T)
@@ -974,7 +978,11 @@ plot(nc_counties); plot(nc_counties[orange_neighbors[,1],], col="blue", add=T)
 # A question of hospitals
 # http://data.nconemap.gov/geoportal/rest/find/document?searchText=Hospitals&f=searchpage&f=searchpage
 med_facilities = read_sf("./maps/medfacs.shp", stringsAsFactors = F) # the sf way
+plot(med_facilities)
+class(nc_counties)
 plot(nc_counties); plot(med_facilities %>% st_geometry(), add=T)
+
+plot(med_facilities %>% st_geometry())
 nc_counties_sf = nc_counties %>% st_as_sf()
 st_crs(nc_counties_sf); st_crs(med_facilities) # oops! projection mismatch!
 
@@ -986,17 +994,21 @@ plot(nc_counties_sf %>% st_geometry()); plot(med_facilities %>% st_geometry(), a
 plot(med_facilities %>% st_geometry())
 orange_county = nc_counties_sf[nc_counties_sf$NAME=="Orange",]
 plot(orange_county %>% st_geometry())
-plot(med_facilities[orange_county,], max.plot=1, add=T)
+plot(med_facilities %>% st_geometry(), add=T)
+plot(med_facilities[orange_county,]%>% st_geometry(), max.plot=1, add=T)
 
-#what centroids are 50m from a hospital?
+# what centroids are 50m from a hospital?
 head(med_facilities)
 table(med_facilities$STYPE)
 hospitals = med_facilities[med_facilities$STYPE == "Hospital",] # nice!
+plot(orange_county %>% st_geometry())
+plot(hospitals%>% st_geometry(), add=T)
 
 # don't have birth locations - let's use centroids as a proxy
 dist_matrix = st_distance(county_centroids %>% spTransform(nc_stateplane_proj) %>% st_as_sf, hospitals)
+
 dim(dist_matrix)
-dist_matrix[1,]
+dist_matrix[1:5,1:5]
 within_5mi = function(x){any(x<=5*5280)}
 apply(dist_matrix, 1, within_5mi) # can colbind this back together.
 
@@ -1004,6 +1016,7 @@ dist_list = st_is_within_distance(county_centroids %>%
                                     spTransform(nc_stateplane_proj) %>%
                                     st_as_sf(),
                                   hospitals, 5*5280)
+str(dist_list)
 map_lgl(dist_list, ~ length(.x)>0)
 
 # spatial over... so many ways
@@ -1011,6 +1024,7 @@ hold = st_within(hospitals, nc_counties_sf)
 str(hold) # what do we know that can work with lists?
 unlist(hold) # here's one way!
 map_int(hold, ~.x[[1]]) # here's another flexible way.
+hospitals$county = nc_counties_sf$NAME[unlist(hold)]
 
 # What about spatial autocorrelation? (the sp way)
 library(spdep)
@@ -1058,7 +1072,8 @@ save(list = c("nc_counties", "nc_counties_sf", "county_results", "med_facilities
 ## MISC: Clusters & Trees ####
 #............................................
 # kmeans
-to_model = births[,c("pnc5_f", "preterm_f", "smoker", "race_f", "cores", "mage")]
+names(births)
+to_model = births[,c("pnc5_f", "preterm_f", "smoker_f", "raceeth_f", "cores", "mage")]
 to_model = na.omit(to_model)
 head(to_model)
 scale_01 = function(x){
@@ -1073,7 +1088,7 @@ to_model$cluster = km$cluster
 table(to_model$cluster, to_model$preterm_f)
 prop.table(table(to_model$cluster, to_model$preterm_f), margin = 2) #meh. cluster 1 is a little more preterm.
 
-km2 = kmeans(to_model_01[,names(to_model_01) != "preterm_f"], 20)
+km2 = kmeans(to_model_01[,names(to_model_01) != "preterm_f"], 10)
 to_model$cluster2 = km2$cluster
 prop.table(table(to_model$cluster2, to_model$preterm_f), margin = 1)*100 #meh. cluster 1 is a little more preterm.
 
@@ -1086,19 +1101,19 @@ library(rattle)
 
 names(to_model)
 dim(to_model)
-glm1 = glm(data = to_model, preterm_f ~ pnc5_f + smoker + race_f + mage, family=binomial("logit"))
+glm1 = glm(data = to_model, preterm_f ~ pnc5_f + smoker_f + raceeth_f + mage, family=binomial("logit"))
 to_model$glm1_pred = predict(glm1, to_model, "response")
 table(to_model$glm1_pred, to_model$preterm_f)
 
 str(to_model)
-tree1 = rpart(data = to_model, preterm_f ~ pnc5_f + smoker + race_f +mage, method="class", parms=list(split="information"),
+tree1 = rpart(data = to_model, preterm_f ~ pnc5_f + smoker_f + raceeth_f + mage , method="class", parms=list(split="information"),
               control=rpart.control(minsplit=2, minbucket=1, cp=0.0001)) #no interaction terms, though. dropped cores. need minbucket.
 summary(tree1)
 plot(tree1)
 fancyRpartPlot(tree1)
-to_model$rpart_pred = predict(tree1, to_model[,c("pnc5_f","smoker","race_f", "mage")], "class")
+to_model$rpart_pred = predict(tree1, to_model[,c("pnc5_f","smoker_f","raceeth_f", "mage")], "class")
 to_model$rpart_pred
-table(to_model$rpart_pred, to_model$preterm_f)
+table(pred=to_model$rpart_pred, true=to_model$preterm_f)
 table(to_model$rpart_pred)
 # give each the same half, then predict and compare accuracy?
 #............................................

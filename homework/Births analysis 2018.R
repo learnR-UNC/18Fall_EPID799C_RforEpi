@@ -582,16 +582,9 @@ anova(m_plusmage_rd, m_plussmoke_rd, test = "LRT") #Better to use bias-variance 
 m_plusmagesq_rd = glm(data=births, preterm_f ~ pnc5_f + smoker_f + mage + mage_sq, family=binomial(link="identity"))
 anova(m_plusmagesq_rd, m_plussmoke_rd, test = "LRT") #Better to use bias-variance trade-off process. See EPID 718.
 
-
-
-
-
-
-
-
-
-
-
+# ......................................
+# __End Homework 4 /  Start Homework 5 ####
+# ......................................
 
 # ......................................
 # __PARKINGLOT ####
@@ -664,10 +657,6 @@ ggplot2::last_plot() + scale_x_continuous(limits=c(85,95))+scale_y_continuous(li
 #............................................
 # I'd like to add g-formula in the future... as well as bias-variance trade offs
 #............................................
-
-# ......................................
-# __End Homework 4 /  Start Homework 5 ####
-# ......................................
 
 #............................................
 # EMM / final model
@@ -785,13 +774,15 @@ t1=CreateTableOne(data=births[,c("pnc5_f", "preterm_f", "smoker_f","sex", "racee
 print(t1, showAllLevels=T) #print.TableOne # let's see the guts.
 write.table(print(t1, showAllLevels=T, quote = T), "clipboard",   # Table 1A
             sep="\t", quote = F)
+# Now go to excel to paste and format
 
 t2=CreateTableOne(data=births[,c("pnc5_f", "preterm_f", "smoker_f","sex", "raceeth_f", "wksgest", "mage", "meduc")],
                   strata=c("raceeth_f"), includeNA = T, argsNonNormal = c("wksgest"))
 print(t2, showAllLevels=T) #print.TableOne # let's see the guts.
 write.table(trimws(print(t2, showAllLevels=T, quote = F)), "clipboard", sep="\t", quote = F)  # Table 1B
+# ^ yuck. leading and tailing spaces? trimws() can help
+# Now go to excel to paste and format
 
-# yuck. leading and tailing spaces? trimws can help
 
 county_data %>%
   bind_rows(births %>%
@@ -803,124 +794,9 @@ county_results %>% write.table("clipboard", sep="\t", row.names = F)
 save.image("birth_results.RData")
 #............................................
 
-
-# ......................................
-# Assignments # This section is YUCK!!!!
-# ......................................
-### A1
-hist(births$weeks)
-### A2
-#A1.1
-#Make a, b n table.
-table(births$preterm_f, births$pnc5_f)
-#calculate risks, CIs
-#install.packages("epicalc")
-library(epiR) #for epi2x2
-library(epitools) #for epitab()
-#library(epicalc) #Busted for newer R versions
-library(Epi)
-#http://www.inside-r.org/packages/cran/epiR/docs/epi.2by2
-
-findings = function(e,o,s){
-  # Takes t as top=D-, D+; left=E-, E+   #Convert to top=D+, D1; left=E+, E1
-  #  t2 = matrix(c(t[2,2], t[2,1], t[1,2], t[1,1]), nrow = 2, byrow = T)
-
-  l = unique(s)
-  for(strata in l){
-    # e = births$pnc5_f; o = births$preterm_f
-    t = table(e[s %in% strata], o[s %in% strata])
-    cat("\n\nStrata=", strata, "\n")
-    print(t)
-    #e = epi.2by2(t, units=1) #frustratingly confusing.
-    R0=t[2,2]/(t[2,2]+t[2,1])
-    cat("\nRisk in Exposed:", R0, "\n")
-    R1=t[1,2]/(t[1,2]+t[1,1])
-    cat("Risk in Unexposed:", R1, "\n")
-    R = (t[1,2]+t[2,2])/(sum(t))
-    cat("Risk Overall:", R, "\n")
-    #cat("Prevalence of outcome")
-    cat("RD: ", R1-R0) #update here
-  }
-}
-
-findings(births$pnc5_f, births$preterm_f, births$race_f)
-#ftable(xtabs(cbind(births$pnc5, births$preterm) ~ births$race))
-t = table(factor(births$pnc5_f,levels = rev(levels(births$pnc5_f))),
-          factor(births$preterm_f,levels= rev(levels(births$preterm_f)))) # wrong.
-t
-e = better.table(t)
-r0 = 357/(357+2120) #14.4% no pnc
-r1 = 6582/(6582+52205) #11.2% w/ pnc
-r1-r0
-str(e)
-unique(births$race_f)
-xtabs(data=births, pnc5_f ~ preterm_f + race_f)
-dat <- matrix(c(13,2163,5,3349), nrow = 2, byrow = TRUE)
-rownames(dat) <- c("DF+", "DF-"); colnames(dat) <- c("FUS+", "FUS-"); dat
-as.table(dat)
-table(births$pnc5_f)
-table(factor(births$pnc5_f,levels = rev(levels(births$pnc5_f))))
-t = table(births$pnc5_f[births$race_f=="White"],births$preterm_f[births$race_f=="White"]) # wrong.
-t = table(births$pnc5_f[births$race_f=="Black"],births$preterm_f[births$race_f=="Black"]) # wrong.
-t = matrix(c(t[2,2], t[2,1], t[1,2], t[1,1]), nrow = 2, byrow = T)
-e=epi.2by2(t, outcome = "as.rows", units=1) #frustratingly confusing.
-epitab(t)
-#make incident table.
 #............................................
-## Maps 1 - libraries & ecosystems ####
-#............................................
-## Clusters & Trees
-#............................................
-# kmeans
-to_model = births[,c("pnc5_f", "preterm_f", "smoker", "race_f", "cores", "mage")]
-to_model = na.omit(to_model)
-head(to_model)
-scale_01 = function(x){
-  x = as.numeric(x);
-  x = (x-min(x, na.rm = T)) / (max(x, na.rm = T) - min(x, na.rm = T))
-  return(x)
-}
-to_model_01 = data.frame(lapply(to_model, FUN=scale_01)) #note why apply doesn't work - matrix first
-summary(to_model_01)
-km = kmeans(to_model_01[,names(to_model_01) != "preterm_f"], 2)
-to_model$cluster = km$cluster
-table(to_model$cluster, to_model$preterm_f)
-prop.table(table(to_model$cluster, to_model$preterm_f), margin = 2) #meh. cluster 1 is a little more preterm.
-
-km2 = kmeans(to_model_01[,names(to_model_01) != "preterm_f"], 20)
-to_model$cluster2 = km2$cluster
-prop.table(table(to_model$cluster2, to_model$preterm_f), margin = 1)*100 #meh. cluster 1 is a little more preterm.
-
-to_model %>% group_by(cluster2) %>%
-  summarise(n = n(), pct_preterm=sum(preterm_f=="preterm", na.rm=T)/n)
-# https://datascience.stackexchange.com/questions/22/k-means-clustering-for-mixed-numeric-and-categorical-data?newreg=e85b257b6b524d768e3a8cff706840eb
-#............................................
-library(rpart)
-library(rattle)
-
-names(to_model)
-dim(to_model)
-glm1 = glm(data = to_model, preterm_f ~ pnc5_f + smoker + race_f + mage, family=binomial("logit"))
-to_model$glm1_pred = predict(glm1, to_model, "response")
-table(to_model$glm1_pred, to_model$preterm_f)
-
-str(to_model)
-tree1 = rpart(data = to_model, preterm_f ~ pnc5_f + smoker + race_f +mage, method="class", parms=list(split="information"),
-              control=rpart.control(minsplit=2, minbucket=1, cp=0.0001)) #no interaction terms, though. dropped cores. need minbucket.
-summary(tree1)
-plot(tree1)
-fancyRpartPlot(tree1)
-to_model$rpart_pred = predict(tree1, to_model[,c("pnc5_f","smoker","race_f", "mage")], "class")
-to_model$rpart_pred
-table(to_model$rpart_pred, to_model$preterm_f)
-table(to_model$rpart_pred)
-# give each the same half, then predict and compare accuracy?
-#............................................
-
-
-
-#............................................
-## Map makin'
+## Maps ####
+# LOOONG Exploration! (any single method for HW5)
 #............................................
 # Add tmap:: library(sp) #for spatial objects
 library(sp)
@@ -1147,6 +1023,131 @@ save(list = c("nc_counties", "nc_counties_sf", "county_results", "med_facilities
 # http://www.kevjohnson.org/making-maps-in-r/
 # https://www.google.com/search?q=north+carolina+counties+table&tbm=isch&tbo=u&source=univ&sa=X&ved=0ahUKEwiLnYyDxNbNAhVQzGMKHUAUD4kQsAQIHQ&biw=1536&bih=716
 #.................................................
+#............................................
+# __End Homework 5 ####
+#............................................
+
+#............................................
+# __Supplemental Analyses ####
+#............................................
+
+
+
+# ......................................
+# Assignments # This section is YUCK!!!!
+# ......................................
+### A1
+hist(births$weeks)
+### A2
+#A1.1
+#Make a, b n table.
+table(births$preterm_f, births$pnc5_f)
+#calculate risks, CIs
+#install.packages("epicalc")
+library(epiR) #for epi2x2
+library(epitools) #for epitab()
+#library(epicalc) #Busted for newer R versions
+library(Epi)
+#http://www.inside-r.org/packages/cran/epiR/docs/epi.2by2
+
+findings = function(e,o,s){
+  # Takes t as top=D-, D+; left=E-, E+   #Convert to top=D+, D1; left=E+, E1
+  #  t2 = matrix(c(t[2,2], t[2,1], t[1,2], t[1,1]), nrow = 2, byrow = T)
+
+  l = unique(s)
+  for(strata in l){
+    # e = births$pnc5_f; o = births$preterm_f
+    t = table(e[s %in% strata], o[s %in% strata])
+    cat("\n\nStrata=", strata, "\n")
+    print(t)
+    #e = epi.2by2(t, units=1) #frustratingly confusing.
+    R0=t[2,2]/(t[2,2]+t[2,1])
+    cat("\nRisk in Exposed:", R0, "\n")
+    R1=t[1,2]/(t[1,2]+t[1,1])
+    cat("Risk in Unexposed:", R1, "\n")
+    R = (t[1,2]+t[2,2])/(sum(t))
+    cat("Risk Overall:", R, "\n")
+    #cat("Prevalence of outcome")
+    cat("RD: ", R1-R0) #update here
+  }
+}
+
+findings(births$pnc5_f, births$preterm_f, births$race_f)
+#ftable(xtabs(cbind(births$pnc5, births$preterm) ~ births$race))
+t = table(factor(births$pnc5_f,levels = rev(levels(births$pnc5_f))),
+          factor(births$preterm_f,levels= rev(levels(births$preterm_f)))) # wrong.
+t
+e = better.table(t)
+r0 = 357/(357+2120) #14.4% no pnc
+r1 = 6582/(6582+52205) #11.2% w/ pnc
+r1-r0
+str(e)
+unique(births$race_f)
+xtabs(data=births, pnc5_f ~ preterm_f + race_f)
+dat <- matrix(c(13,2163,5,3349), nrow = 2, byrow = TRUE)
+rownames(dat) <- c("DF+", "DF-"); colnames(dat) <- c("FUS+", "FUS-"); dat
+as.table(dat)
+table(births$pnc5_f)
+table(factor(births$pnc5_f,levels = rev(levels(births$pnc5_f))))
+t = table(births$pnc5_f[births$race_f=="White"],births$preterm_f[births$race_f=="White"]) # wrong.
+t = table(births$pnc5_f[births$race_f=="Black"],births$preterm_f[births$race_f=="Black"]) # wrong.
+t = matrix(c(t[2,2], t[2,1], t[1,2], t[1,1]), nrow = 2, byrow = T)
+e=epi.2by2(t, outcome = "as.rows", units=1) #frustratingly confusing.
+epitab(t)
+#make incident table.
+#............................................
+
+#............................................
+## Clusters & Trees
+#............................................
+# kmeans
+to_model = births[,c("pnc5_f", "preterm_f", "smoker", "race_f", "cores", "mage")]
+to_model = na.omit(to_model)
+head(to_model)
+scale_01 = function(x){
+  x = as.numeric(x);
+  x = (x-min(x, na.rm = T)) / (max(x, na.rm = T) - min(x, na.rm = T))
+  return(x)
+}
+to_model_01 = data.frame(lapply(to_model, FUN=scale_01)) #note why apply doesn't work - matrix first
+summary(to_model_01)
+km = kmeans(to_model_01[,names(to_model_01) != "preterm_f"], 2)
+to_model$cluster = km$cluster
+table(to_model$cluster, to_model$preterm_f)
+prop.table(table(to_model$cluster, to_model$preterm_f), margin = 2) #meh. cluster 1 is a little more preterm.
+
+km2 = kmeans(to_model_01[,names(to_model_01) != "preterm_f"], 20)
+to_model$cluster2 = km2$cluster
+prop.table(table(to_model$cluster2, to_model$preterm_f), margin = 1)*100 #meh. cluster 1 is a little more preterm.
+
+to_model %>% group_by(cluster2) %>%
+  summarise(n = n(), pct_preterm=sum(preterm_f=="preterm", na.rm=T)/n)
+# https://datascience.stackexchange.com/questions/22/k-means-clustering-for-mixed-numeric-and-categorical-data?newreg=e85b257b6b524d768e3a8cff706840eb
+#............................................
+library(rpart)
+library(rattle)
+
+names(to_model)
+dim(to_model)
+glm1 = glm(data = to_model, preterm_f ~ pnc5_f + smoker + race_f + mage, family=binomial("logit"))
+to_model$glm1_pred = predict(glm1, to_model, "response")
+table(to_model$glm1_pred, to_model$preterm_f)
+
+str(to_model)
+tree1 = rpart(data = to_model, preterm_f ~ pnc5_f + smoker + race_f +mage, method="class", parms=list(split="information"),
+              control=rpart.control(minsplit=2, minbucket=1, cp=0.0001)) #no interaction terms, though. dropped cores. need minbucket.
+summary(tree1)
+plot(tree1)
+fancyRpartPlot(tree1)
+to_model$rpart_pred = predict(tree1, to_model[,c("pnc5_f","smoker","race_f", "mage")], "class")
+to_model$rpart_pred
+table(to_model$rpart_pred, to_model$preterm_f)
+table(to_model$rpart_pred)
+# give each the same half, then predict and compare accuracy?
+#............................................
+
+
+
 
 
 #............................................
